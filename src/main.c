@@ -319,6 +319,7 @@ void display_task(void const * argument){
     (void)argument;
     char string[100] = {0};
     char * p_string = string;
+    u8 tick = 0;
     refresh_watchdog();
     max7219_init();
     //font test
@@ -349,7 +350,19 @@ void display_task(void const * argument){
     uint32_t last_wake_time = osKernelSysTick();
     while(1){
         refresh_watchdog();
-        sprintf(string, "%d SEC", (int)HAL_GetTick()/1000);
+        if(tick < 5*1000/display_task_period){
+            sprintf(string, "%d SEC", (int)HAL_GetTick()/1000);
+        }else if((tick >= 5*1000/display_task_period)&&(tick < 10*1000/display_task_period)){
+            if(dcts_meas[TMPR].value > 100.0f){
+                sprintf(string, " %.1f *C", (double)dcts_meas[TMPR].value);
+            }else{
+                sprintf(string, "  %.1f *C", (double)dcts_meas[TMPR].value);
+            }
+        }
+        tick++;
+        if(tick == 10*1000/display_task_period){
+            tick = 0;
+        }
         max7219_print_string(string);
         osDelayUntil(&last_wake_time, display_task_period);
     }

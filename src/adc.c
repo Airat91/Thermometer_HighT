@@ -174,7 +174,7 @@ void adc_task(void const * argument){
         dcts_meas[VREFINT_ADC].valid = TRUE;
         dcts_meas[TMPR_ADC].valid = TRUE;
         dcts_meas[TMPR_V].valid = TRUE;
-        if((dcts_meas[TMPR_V].value > 0.1f)&&(dcts_meas[TMPR_V].value < 3.2f)){
+        if((dcts_meas[TMPR_V].value > 0.01f)&&(dcts_meas[TMPR_V].value < 1.7f)){
             dcts_meas[TMPR].valid = TRUE;
         }else{
             dcts_meas[TMPR].valid = FALSE;

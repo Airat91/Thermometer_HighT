@@ -59,6 +59,7 @@
 #include "adc.h"
 #include "portable.h"
 #include "am2302.h"
+#include "max7219.h"
 
 /**
   * @defgroup MAIN
@@ -102,7 +103,7 @@ uint32_t us_cnt_H = 0;
 
 void dcts_init (void) {
     dcts.dcts_id = DCTS_ID_MEASURE;
-    strcpy (dcts.dcts_ver, "1.0.3");
+    strcpy (dcts.dcts_ver, "1.0.0");
     strcpy (dcts.dcts_name, "Parilka");
     strcpy (dcts.dcts_name_cyr, "Парилка");
     dcts.dcts_address = 0x0C;
@@ -285,7 +286,6 @@ void default_task(void const * argument){
     RTC_DateTypeDef date;*/
     uint32_t last_wake_time = osKernelSysTick();
 
-    //HAL_IWDG_Refresh(&hiwdg);
     while(1){
         if(HAL_GetTick()%500 < DEFAULT_TASK_PERIOD){
             HAL_GPIO_TogglePin(LED_PORT,LED_PIN);
@@ -314,12 +314,40 @@ void default_task(void const * argument){
 #define display_task_period 500
 void display_task(void const * argument){
     (void)argument;
+    char string[100] = {0};
+    char * p_string = string;
+    refresh_watchdog();
     max7219_init();
+    //font test
+    /*sprintf(string,"        0123456789AaBbCcDdEeFfGgHhIiJjKkLlMmNnOoPpQqRrSsTtUuVvWwXxYyZz*-[()]");
+    while(*p_string != '\0'){
+        max7219_print_string(p_string);
+        osDelay(500);
+        p_string++;
+        refresh_watchdog();
+    }
+    max7219_clr();*/
+    sprintf(string, "       dcts%s", dcts.dcts_ver);
+    while(*p_string != '\0'){
+        max7219_print_string(p_string);
+        if(*p_string == 'd'){
+            refresh_watchdog();
+            osDelay(2000);
+        }else{
+            refresh_watchdog();
+            osDelay(100);
+        }
+        p_string++;
+        refresh_watchdog();
+    }
+    max7219_clr();
+    osDelay(500);
+
     uint32_t last_wake_time = osKernelSysTick();
     while(1){
-#if RELEASE
-        HAL_IWDG_Refresh(&hiwdg);
-#endif //RELEASE
+        refresh_watchdog();
+        sprintf(string, "%d SEC", (int)HAL_GetTick()/1000);
+        max7219_print_string(string);
         osDelayUntil(&last_wake_time, display_task_period);
     }
 }
@@ -554,6 +582,12 @@ static void led_lin_init(void){
     GPIO_InitStruct.Pin = LED_PIN;
     HAL_GPIO_WritePin(LED_PORT, LED_PIN, GPIO_PIN_SET);
     HAL_GPIO_Init (LED_PORT, &GPIO_InitStruct);
+}
+
+void refresh_watchdog(void){
+#if RELEASE
+        HAL_IWDG_Refresh(&hiwdg);
+#endif //RELEASE
 }
 
 #ifdef  USE_FULL_ASSERT

@@ -9,7 +9,8 @@
 #include "main.h"
 #include "string.h"
 
-#define FONT_SYMB_NMB 30
+#define FONT_SYMB_NMB 60
+#define DIGIT_NUM 8
 
 /**
   * @defgroup max7219
@@ -38,18 +39,14 @@ int max7219_init (void){
     max7219_send(0x0C,0x00);
     max7219_send(0x0C,0x01);
     max7219_send(0x09,0x00);
-    max7219_send(0x0A,0x0F);
-    max7219_send(0x0B,0x07);
-    for(u8 i = 8; i > 0; i--){
-        max7219_send(i,0x0F);
-    }
-    max7219_send(0x0F,0x01);
+    max7219_send(0x0A,0x02);
+    max7219_send(0x0B,DIGIT_NUM - 1);
+    //test
+    /*max7219_send(0x0F,0x01);
     osDelay(500);
-    max7219_send(0x0F,0x00);
-
-    max7219_print_string("  HELLO ");
-    osDelay(2000);
+    max7219_send(0x0F,0x00);*/
     max7219_clr();
+
 
     return result;
 }
@@ -158,14 +155,17 @@ void max7219_send(u8 addr, u8 data){
 }
 
 u8 max7219_get_symbol_code(char symb){
-    u8 code = 0x00;
+    u8 code = 0x08;
     u8 i = 0;
-    for (i = 0; i < FONT_SYMB_NMB + 1; i++){
+    while(i < FONT_SYMB_NMB){
         if(symb == max7219_font[i].symb){
             break;
         }
+        i++;
     }
-    if(i != FONT_SYMB_NMB){
+    if(i == FONT_SYMB_NMB){
+        code = 0x08;
+    }else{
         code = max7219_font[i].code;
     }
     return code;
@@ -174,7 +174,7 @@ void max7219_print_string(char *string){
     u8 len = 0;
     char * symb = string;
     u8 array[20] = {0};
-    while(len < 8){
+    while(len < DIGIT_NUM){
         if(*symb == '\0'){
             break;
         }
@@ -186,15 +186,17 @@ void max7219_print_string(char *string){
             len++;
             symb++;
         }
-
     }
-    if(len != 8 - 1){
-        while(len < 8){
+    len--;
+    if(len != DIGIT_NUM - 1){
+        len++;
+        while(len < DIGIT_NUM){
             array[len] = max7219_get_symbol_code(' ');
+            len++;
         }
     }
-    for(len = 0; len < 8; len++){
-        max7219_send(8-len,array[len]);
+    for(len = 0; len < DIGIT_NUM; len++){
+        max7219_send(DIGIT_NUM-len,array[len]);
     }
 }
 
@@ -214,23 +216,47 @@ max7219_symbol_t max7219_font[FONT_SYMB_NMB] = {
     {.symb = '7', .code = 0x70},
     {.symb = '8', .code = 0x7F},
     {.symb = '9', .code = 0x7B},
+    {.symb = '-', .code = 0x01},
+    {.symb = '_', .code = 0x08},
     {.symb = 'A', .code = 0x77},
+    {.symb = 'a', .code = 0x77},
+    {.symb = 'B', .code = 0x1F},
     {.symb = 'b', .code = 0x1F},
     {.symb = 'C', .code = 0x4E},
     {.symb = 'c', .code = 0x0D},
-    {.symb = 'd', .code = 0x7D},
+    {.symb = 'D', .code = 0x3D},
+    {.symb = 'd', .code = 0x3D},
     {.symb = 'E', .code = 0x4F},
+    {.symb = 'e', .code = 0x4F},
     {.symb = 'F', .code = 0x47},
+    {.symb = 'f', .code = 0x47},
     {.symb = 'G', .code = 0x5E},
+    {.symb = 'g', .code = 0x5E},
     {.symb = 'H', .code = 0x37},
+    {.symb = 'h', .code = 0x17},
+    {.symb = 'I', .code = 0x04},
+    {.symb = 'i', .code = 0x04},
     {.symb = 'L', .code = 0x0E},
     {.symb = 'l', .code = 0x06},
+    {.symb = 'N', .code = 0x15},
+    {.symb = 'n', .code = 0x15},
     {.symb = 'O', .code = 0x7E},
     {.symb = 'o', .code = 0x1D},
     {.symb = 'P', .code = 0x67},
+    {.symb = 'p', .code = 0x67},
+    {.symb = 'R', .code = 0x05},
+    {.symb = 'r', .code = 0x05},
     {.symb = 'S', .code = 0x5B},
+    {.symb = 's', .code = 0x5B},
     {.symb = '*', .code = 0x63},//degree symbol
+    {.symb = 'T', .code = 0x0F},
     {.symb = 't', .code = 0x0F},
     {.symb = 'U', .code = 0x3E},
-    {.symb = 'Y', .code = 0x7B},
+    {.symb = 'u', .code = 0x1C},
+    {.symb = 'Y', .code = 0x3B},
+    {.symb = 'y', .code = 0x3B},
+    {.symb = '(', .code = 0x4E},
+    {.symb = '[', .code = 0x4E},
+    {.symb = ')', .code = 0x78},
+    {.symb = ']', .code = 0x78},
 };

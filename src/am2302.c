@@ -12,16 +12,14 @@
   * @addtogroup am2302
   * @{
   */
-#define AM2302_CH_NUM 3
+#define AM2302_CH_NUM 1
 #define AM2302_TIMEOUT 1000
 /**
   * @}
   */
 
 static const am2302_pin_t am2302_pin[AM2302_CH_NUM] = {
-    {.port = AM2302_1_PORT, .pin = AM2302_1_PIN},
-    {.port = AM2302_2_PORT, .pin = AM2302_2_PIN},
-    {.port = AM2302_3_PORT, .pin = AM2302_3_PIN},
+    {.port = DATA_PORT, .pin = DATA_PIN},
 };
 
 /*========== FUNCTIONS ==========*/

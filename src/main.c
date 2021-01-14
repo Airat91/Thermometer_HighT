@@ -122,7 +122,10 @@ void dcts_init (void) {
 
     //meas_channels
 
-    dcts_meas_channel_init(PARILKA_TMPR, "Temperature", "Температура", "°C", "°C");
+    dcts_meas_channel_init(TMPR, "Temperature", "Температура", "°C", "°C");
+    dcts_meas_channel_init(TMPR_ADC, "Temperature_adc", "Температура АЦП", "adc", "adc");
+    dcts_meas_channel_init(TMPR_V, "Temperature_v", "Температура В", "V", "В");
+    dcts_meas_channel_init(VREFINT_ADC, "Vref_adc", "ИОН АЦП", "adc", "adc");
 }
 
 /**

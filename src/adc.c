@@ -15,11 +15,13 @@
 
 ADC_HandleTypeDef hadc1;
 
+static float tmpr_calc(float adc);
+
 #define ADC_BUF_SIZE 50
 #define ADC_PERIOD 10
 #define ADC_MAX 4095
-#define ADC_VREF 3.3f
-#define ADC_VREFINT 1.2f
+//#define ADC_VREF 3.3f
+//#define ADC_VREFINT 1.2f
 
 #define PWR_K   2.187f
 #define VREF_INT 1.2f
@@ -31,11 +33,10 @@ ADC_HandleTypeDef hadc1;
  * @return  0 - ADC init successfull,\n
  *          -1 - ADC config error,\n
  *          -2 - PWR channel config error,\n
- *          -3 - WTR_LEV channel config error,\n
- *          -4 - WTR_TMP channel config error,\n
- *          -5 - TMP channel config error,\n
- *          -6 - Self-calibration error,\n
- *          -7 - ADC start error,
+ *          -3 - TMPR channel config error,\n
+ *          -4 - VREF channel config error,\n
+ *          -5 - Self-calibration error,\n
+ *          -6 - ADC start error,
  * @ingroup ADC
  */
 int adc_init (void){
@@ -57,7 +58,7 @@ int adc_init (void){
         result = -1;
     }
 
-    sConfigInjected.InjectedNbrOfConversion = 4;
+    sConfigInjected.InjectedNbrOfConversion = 3;
     sConfigInjected.InjectedSamplingTime = ADC_SAMPLETIME_239CYCLES_5;
     sConfigInjected.ExternalTrigInjecConv = ADC_INJECTED_SOFTWARE_START;
     sConfigInjected.AutoInjectedConv = ENABLE;
@@ -71,34 +72,27 @@ int adc_init (void){
     {
         result = -2;
     }
-    //Configure WTR_LEV Channel
-    sConfigInjected.InjectedChannel = ADC_CHANNEL_4;
+    //Configure TMPR Channel
+    sConfigInjected.InjectedChannel = ADC_CHANNEL_1;
     sConfigInjected.InjectedRank = ADC_INJECTED_RANK_2;
     if (HAL_ADCEx_InjectedConfigChannel(&hadc1, &sConfigInjected) != HAL_OK)
     {
         result = -3;
     }
-    //Configure WTR_TMP Channel
-    sConfigInjected.InjectedChannel = ADC_CHANNEL_5;
+    //Configure VREF Channel
+    sConfigInjected.InjectedChannel = ADC_CHANNEL_VREFINT;
     sConfigInjected.InjectedRank = ADC_INJECTED_RANK_3;
     if (HAL_ADCEx_InjectedConfigChannel(&hadc1, &sConfigInjected) != HAL_OK)
     {
         result = -4;
     }
-    //Configure TMP Channel
-    sConfigInjected.InjectedChannel = ADC_CHANNEL_VREFINT;
-    sConfigInjected.InjectedRank = ADC_INJECTED_RANK_4;
-    if (HAL_ADCEx_InjectedConfigChannel(&hadc1, &sConfigInjected) != HAL_OK)
-    {
-        result = -5;
-    }
     //Self-calibration
     if(HAL_ADCEx_Calibration_Start(&hadc1) != HAL_OK){
-        result = -6;
+        result = -5;
     }
     //Start ADC
     if (HAL_ADC_Start(&hadc1) != HAL_OK){
-        result = -7;
+        result = -6;
     }
 
     return result;
@@ -127,10 +121,8 @@ void adc_gpio_init (void){
     GPIO_InitStruct.Mode = GPIO_MODE_ANALOG;
     GPIO_InitStruct.Pin = PWR_PIN;
     HAL_GPIO_Init(PWR_PORT, &GPIO_InitStruct);
-    GPIO_InitStruct.Pin = WTR_LEV_PIN;
-    HAL_GPIO_Init(WTR_LEV_PORT, &GPIO_InitStruct);
-    GPIO_InitStruct.Pin = WTR_TMP_PIN;
-    HAL_GPIO_Init(WTR_TMP_PORT, &GPIO_InitStruct);
+    GPIO_InitStruct.Pin = TMPR_PIN;
+    HAL_GPIO_Init(TMPR_PORT, &GPIO_InitStruct);
 }
 /**
  * @brief Deinit ADC gpio
@@ -138,8 +130,7 @@ void adc_gpio_init (void){
  */
 void adc_gpio_deinit (void){
     HAL_GPIO_DeInit(PWR_PORT,PWR_PIN);
-    HAL_GPIO_DeInit(WTR_LEV_PORT,WTR_LEV_PIN);
-    HAL_GPIO_DeInit(WTR_TMP_PORT,WTR_TMP_PIN);
+    HAL_GPIO_DeInit(TMPR_PORT,TMPR_PIN);
 }
 /**
  * @brief Measure ADC channels and write values to DCTS
@@ -149,62 +140,45 @@ void adc_gpio_deinit (void){
 void adc_task(void const * argument){
     (void)argument;
     uint16_t pwr[ADC_BUF_SIZE];
-    uint16_t wtr_lev[ADC_BUF_SIZE];
-    uint16_t wtr_tmp[ADC_BUF_SIZE];
+    uint16_t tmpr[ADC_BUF_SIZE];
     uint16_t vref[ADC_BUF_SIZE];
     uint8_t tick = 0;
     adc_init();
     uint32_t last_wake_time = osKernelSysTick();
     while(1){
         uint32_t pwr_sum = 0;
-        uint32_t wtr_lev_sum = 0;
-        uint32_t wtr_tmp_sum = 0;
+        uint32_t tmpr_sum = 0;
         uint32_t vref_sum = 0;
 
 
         pwr[tick] = (uint16_t)hadc1.Instance->JDR1;
-        wtr_lev[tick] = (uint16_t)hadc1.Instance->JDR2;
-        wtr_tmp[tick] = (uint16_t)hadc1.Instance->JDR3;
-        vref[tick] = (uint16_t)hadc1.Instance->JDR4;
+        tmpr[tick] = (uint16_t)hadc1.Instance->JDR2;
+        vref[tick] = (uint16_t)hadc1.Instance->JDR3;
 
         for(uint8_t i = 0; i < ADC_BUF_SIZE; i++){
             pwr_sum += pwr[i];
-            wtr_lev_sum += wtr_lev[i];
-            wtr_tmp_sum += wtr_tmp[i];
+            tmpr_sum += tmpr[i];
             vref_sum += vref[i];
         }
 
         taskENTER_CRITICAL();
 
-        /*dcts_meas[VREFINT_ADC].value = (float)vref_sum/ADC_BUF_SIZE;
-        dcts_meas[VREF_V].value = ADC_VREFINT/dcts_meas[VREFINT_ADC].value*ADC_MAX;
+        dcts_meas[VREFINT_ADC].value = (float)vref_sum/ADC_BUF_SIZE;
 
-        dcts.dcts_pwr = (float)pwr_sum/ADC_BUF_SIZE*ADC_VREFINT/dcts_meas[VREFINT_ADC].value*PWR_K;
+        dcts.dcts_pwr = (float)pwr_sum/ADC_BUF_SIZE*VREF_INT/dcts_meas[VREFINT_ADC].value*PWR_K;
 
-        dcts_meas[WTR_LVL_ADC].value = (float)wtr_lev_sum/ADC_BUF_SIZE;
-        dcts_meas[WTR_LVL_V].value = dcts_meas[WTR_LVL_ADC].value*ADC_VREFINT/dcts_meas[VREFINT_ADC].value;
-        dcts_meas[WTR_LVL].value =adc_lvl_calc(dcts_meas[WTR_LVL_ADC].value);
-
-        dcts_meas[WTR_TMPR_ADC].value = (float)wtr_tmp_sum/ADC_BUF_SIZE;
-        dcts_meas[WTR_TMPR_V].value = dcts_meas[WTR_TMPR_ADC].value*ADC_VREFINT/dcts_meas[VREFINT_ADC].value;
-        dcts_meas[WTR_TMPR].value = adc_tmpr_calc(dcts_meas[WTR_TMPR_ADC].value);
+        dcts_meas[TMPR_ADC].value = (float)tmpr_sum/ADC_BUF_SIZE;
+        dcts_meas[TMPR_V].value = dcts_meas[TMPR_ADC].value*VREF_INT/dcts_meas[VREFINT_ADC].value;
+        dcts_meas[TMPR].value = tmpr_calc(dcts_meas[TMPR_V].value);
 
         dcts_meas[VREFINT_ADC].valid = TRUE;
-        dcts_meas[VREF_V].valid = TRUE;
-        dcts_meas[WTR_LVL_ADC].valid = TRUE;
-        dcts_meas[WTR_LVL_V].valid = TRUE;
-        if((dcts_meas[WTR_LVL_V].value > 0.1f)&&(dcts_meas[WTR_LVL_V].value < 3.2f)){
-            dcts_meas[WTR_LVL].valid = TRUE;
+        dcts_meas[TMPR_ADC].valid = TRUE;
+        dcts_meas[TMPR_V].valid = TRUE;
+        if((dcts_meas[TMPR_V].value > 0.1f)&&(dcts_meas[TMPR_V].value < 3.2f)){
+            dcts_meas[TMPR].valid = TRUE;
         }else{
-            dcts_meas[WTR_LVL].valid = FALSE;
+            dcts_meas[TMPR].valid = FALSE;
         }
-        dcts_meas[WTR_TMPR_ADC].valid = TRUE;
-        dcts_meas[WTR_TMPR_V].valid = TRUE;
-        if((dcts_meas[WTR_TMPR_V].value > 0.1f)&&(dcts_meas[WTR_TMPR_V].value < 3.2f)){
-            dcts_meas[WTR_TMPR].valid = TRUE;
-        }else{
-            dcts_meas[WTR_TMPR].valid = FALSE;
-        }*/
 
         taskEXIT_CRITICAL();
 
@@ -214,4 +188,12 @@ void adc_task(void const * argument){
         }
         osDelayUntil(&last_wake_time, ADC_PERIOD);
     }
+}
+
+static float tmpr_calc(float vlt){
+    float tmpr = 0.0f;
+    float coef_a = 100.0f;
+    float coef_b = 0.0f;
+    tmpr = vlt * coef_a + coef_b;
+    return tmpr;
 }

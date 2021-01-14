@@ -108,17 +108,17 @@ void max7219_gpio_init (void){
     GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
     GPIO_InitStruct.Pull = GPIO_NOPULL;
     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-    HAL_GPIO_WritePin(LCD_CS_PORT, LCD_CS_PIN, GPIO_PIN_SET);
-    GPIO_InitStruct.Pin = LCD_CS_PIN;
-    HAL_GPIO_Init(LCD_CS_PORT, &GPIO_InitStruct);
+    HAL_GPIO_WritePin(MAX_CS_PORT, MAX_CS_PIN, GPIO_PIN_SET);
+    GPIO_InitStruct.Pin = MAX_CS_PIN;
+    HAL_GPIO_Init(MAX_CS_PORT, &GPIO_InitStruct);
 
     GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
     GPIO_InitStruct.Pull = GPIO_NOPULL;
     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
-    GPIO_InitStruct.Pin = LCD_SCK_PIN;
-    HAL_GPIO_Init(LCD_SCK_PORT, &GPIO_InitStruct);
-    GPIO_InitStruct.Pin = LCD_MOSI_PIN;
-    HAL_GPIO_Init(LCD_MOSI_PORT, &GPIO_InitStruct);
+    GPIO_InitStruct.Pin = MAX_SCK_PIN;
+    HAL_GPIO_Init(MAX_SCK_PORT, &GPIO_InitStruct);
+    GPIO_InitStruct.Pin = MAX_MOSI_PIN;
+    HAL_GPIO_Init(MAX_MOSI_PORT, &GPIO_InitStruct);
 
     __HAL_AFIO_REMAP_SPI1_ENABLE();
 }
@@ -127,9 +127,9 @@ void max7219_gpio_init (void){
  * @ingroup max7219
  */
 void max7219_gpio_deinit (void){
-    HAL_GPIO_DeInit(LCD_CS_PORT,LCD_CS_PIN);
-    HAL_GPIO_DeInit(LCD_SCK_PORT,LCD_SCK_PIN);
-    HAL_GPIO_DeInit(LCD_MOSI_PORT,LCD_MOSI_PIN);
+    HAL_GPIO_DeInit(MAX_CS_PORT,MAX_CS_PIN);
+    HAL_GPIO_DeInit(MAX_SCK_PORT,MAX_SCK_PIN);
+    HAL_GPIO_DeInit(MAX_MOSI_PORT,MAX_MOSI_PIN);
 }
 /**
  * @brief Send data to max7219
@@ -144,14 +144,14 @@ void max7219_send(u8 addr, u8 data){
     SPI_TypeDef *_lcd_spi = SPI1;
     max7219_spi.Instance = SPI1;
 
-    HAL_GPIO_WritePin(LCD_CS_PORT, LCD_CS_PIN,GPIO_PIN_RESET);
+    HAL_GPIO_WritePin(MAX_CS_PORT, MAX_CS_PIN,GPIO_PIN_RESET);
     if(HAL_SPI_Transmit(&max7219_spi,&buff[0],2,100) == HAL_OK){
         while(((uint16_t)_lcd_spi->SR & SPI_SR_BSY)){
         }
     }else{
         error++;
     }
-    HAL_GPIO_WritePin(LCD_CS_PORT, LCD_CS_PIN,GPIO_PIN_SET);
+    HAL_GPIO_WritePin(MAX_CS_PORT, MAX_CS_PIN,GPIO_PIN_SET);
 }
 
 u8 max7219_get_symbol_code(char symb){

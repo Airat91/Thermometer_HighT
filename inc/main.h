@@ -58,7 +58,7 @@
 #include "type_def.h"
 
 #define TIME_YIELD_THRESHOLD 100
-#define MEAS_NUM 1
+#define MEAS_NUM 4
 
 
 /* ########################## Assert Selection ############################## */
@@ -79,7 +79,10 @@
 #endif
 
 typedef enum {
-    PARILKA_TMPR = 0,
+    TMPR = 0,
+    TMPR_ADC,
+    TMPR_V,
+    VREFINT_ADC,
 }dcts_meas_t;
 
 

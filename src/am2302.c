@@ -18,7 +18,7 @@
   * @}
   */
 
-static const am2302_pin_t am2302_pin[AM2302_CH_NUM] = {
+const am2302_pin_t am2302_pin[AM2302_CH_NUM] = {
     {.port = DATA_PORT, .pin = DATA_PIN},
 };
 
@@ -183,5 +183,68 @@ am2302_data_t am2302_get (uint8_t channel) {
         result.error = 1;
     }
     return result;
+}
+
+/**
+ * @brief Send data like AM2302
+ * @param data - struct with data
+ * @param channel - channel of AM2302
+ * @ingroup am2302
+ */
+void am2302_send(am2302_data_t data, uint8_t channel){
+
+    uint8_t send_data[5] = {
+        (uint8_t)(data.hum >> 8),
+        (uint8_t)data.hum,
+        (uint8_t)(data.tmpr >> 8),
+        (uint8_t)data.tmpr,
+        0x00};
+    for (uint8_t i = 0; i < 4; i++){
+        send_data[4] += send_data[i];
+    }
+    uint32_t t_bus_release = 30;
+    uint32_t t_response = 80;
+    uint32_t t_low = 50;
+    uint32_t t_0 = 26;
+    uint32_t t_1 = 70;
+    uint32_t t_en = 50;
+
+
+    // Config AM2032_PIN to OUT
+    GPIO_InitTypeDef GPIO_InitStruct;
+    GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+    GPIO_InitStruct.Pull = GPIO_PULLUP;
+    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+    GPIO_InitStruct.Pin = am2302_pin[channel].pin;
+
+    us_tim_delay(t_bus_release);
+
+    HAL_GPIO_WritePin(am2302_pin[channel].port,am2302_pin[channel].pin, GPIO_PIN_RESET);
+    HAL_GPIO_Init (am2302_pin[channel].port, &GPIO_InitStruct);
+    us_tim_delay(t_response);
+
+    HAL_GPIO_WritePin(am2302_pin[channel].port,am2302_pin[channel].pin, GPIO_PIN_SET);
+    us_tim_delay(t_response);
+
+    // Send data
+    HAL_GPIO_WritePin(am2302_pin[channel].port,am2302_pin[channel].pin, GPIO_PIN_RESET);
+    for(uint8_t byte = 0; byte < 5; byte++){
+        for(uint8_t bit = 0; bit < 8; bit++){
+            us_tim_delay(t_low);
+            HAL_GPIO_WritePin(am2302_pin[channel].port,am2302_pin[channel].pin, GPIO_PIN_SET);
+            if(send_data[byte] & (1 << (7 - bit))){
+                us_tim_delay(t_1);
+            }else{
+                us_tim_delay(t_0);
+            }
+            HAL_GPIO_WritePin(am2302_pin[channel].port,am2302_pin[channel].pin, GPIO_PIN_RESET);
+        }
+    }
+    us_tim_delay(t_en);
+    //HAL_GPIO_WritePin(am2302_pin[channel].port,am2302_pin[channel].pin, GPIO_PIN_SET);
+
+    // Config AM2032_PIN to IN
+    GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+    HAL_GPIO_Init (am2302_pin[channel].port, &GPIO_InitStruct);
 }
 

@@ -350,9 +350,9 @@ void display_task(void const * argument){
     uint32_t last_wake_time = osKernelSysTick();
     while(1){
         refresh_watchdog();
-        if(tick < 5*1000/display_task_period){
+        if(tick < 0*1000/display_task_period){
             sprintf(string, "%d SEC", (int)HAL_GetTick()/1000);
-        }else if((tick >= 5*1000/display_task_period)&&(tick < 10*1000/display_task_period)){
+        }else if((tick >= 0*1000/display_task_period)&&(tick < 10*1000/display_task_period)){
             if(dcts_meas[TMPR].value > 100.0f){
                 sprintf(string, " %.1f *C", (double)dcts_meas[TMPR].value);
             }else{
@@ -373,15 +373,33 @@ void display_task(void const * argument){
  * @param argument
  */
 
-#define am2302_task_period 3000
 void am2302_task (void const * argument){
     (void)argument;
-    uint32_t last_wake_time = osKernelSysTick();
+    uint32_t start_it = 0;
+    uint32_t timeout = 0;
     am2302_init();
-    am2302_data_t am2302 = {0};
+    am2302_data_t data = {0};
+    refresh_watchdog();
+    osDelay(1000);
+    refresh_watchdog();
     while(1){
-
-        osDelayUntil(&last_wake_time, am2302_task_period);
+        if(HAL_GPIO_ReadPin(am2302_pin[0].port, am2302_pin[0].pin) == 0){
+            taskENTER_CRITICAL();
+            start_it = us_tim_get_value();
+            data.tmpr = (int16_t)(dcts_meas[TMPR].value * 10.0f);
+            while ((HAL_GPIO_ReadPin(am2302_pin[0].port, am2302_pin[0].pin) == 0)&&(timeout < 2000)) {
+                timeout = us_tim_get_value() - start_it;
+            }
+            if(timeout >= 2000){
+                timeout = 0;    //timeout_error
+            }else{
+                timeout = 0;
+                am2302_send(data, 0);
+            }
+            taskEXIT_CRITICAL();
+        }else{
+            taskYIELD();
+        }
     }
 }
 

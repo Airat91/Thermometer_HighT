@@ -89,7 +89,7 @@ osThreadId am2302TaskHandle;
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 static void MX_IWDG_Init(void);
-static void MX_RTC_Init(void);
+static void RTC_Init(void);
 static void tim2_init(void);
 static void save_to_bkp(u8 bkp_num, u8 var);
 static void save_float_to_bkp(u8 bkp_num, float var);
@@ -146,8 +146,8 @@ int main(void){
     /*
     MX_RTC_Init();
     */
-    osThreadDef(default_task, default_task, osPriorityNormal, 0, configMINIMAL_STACK_SIZE*4);
-    defaultTaskHandle = osThreadCreate(osThread(default_task), NULL);
+    osThreadDef(rtc_task, rtc_task, osPriorityNormal, 0, configMINIMAL_STACK_SIZE*4);
+    defaultTaskHandle = osThreadCreate(osThread(rtc_task), NULL);
 
     osThreadDef(display_task, display_task, osPriorityNormal, 0, configMINIMAL_STACK_SIZE*4);
     displayTaskHandle = osThreadCreate(osThread(display_task), NULL);
@@ -230,7 +230,7 @@ void SystemClock_Config(void)
 }
 
 /* RTC init function */
-static void MX_RTC_Init(void){
+static void RTC_Init(void){
     RTC_TimeTypeDef sTime = {0};
     RTC_DateTypeDef sDate = {0};
     __HAL_RCC_BKP_CLK_ENABLE();
@@ -242,38 +242,36 @@ static void MX_RTC_Init(void){
         _Error_Handler(__FILE__, __LINE__);
     }
 
-    u32 data;
-    const  u32 data_c = 0x1234;
-    data = BKP->DR1;
-    if(data!=data_c){   // set default values
-        HAL_PWR_EnableBkUpAccess();
-        BKP->DR1 = data_c;
-        HAL_PWR_DisableBkUpAccess();
+    sTime.Hours = dcts.dcts_rtc.hour;
+    sTime.Minutes = dcts.dcts_rtc.minute;
+    sTime.Seconds = dcts.dcts_rtc.second;
 
-        sTime.Hours = dcts.dcts_rtc.hour;
-        sTime.Minutes = dcts.dcts_rtc.minute;
-        sTime.Seconds = dcts.dcts_rtc.second;
+    sDate.Date = dcts.dcts_rtc.day;
+    sDate.Month = dcts.dcts_rtc.month;
+    sDate.Year = (uint8_t)(dcts.dcts_rtc.year - 2000);
 
-        sDate.Date = dcts.dcts_rtc.day;
-        sDate.Month = dcts.dcts_rtc.month;
-        sDate.Year = (uint8_t)(dcts.dcts_rtc.year - 2000);
+    HAL_RTC_SetTime(&hrtc, &sTime, RTC_FORMAT_BIN);
+    HAL_RTC_SetDate(&hrtc, &sDate, RTC_FORMAT_BIN);
+}
 
-        HAL_RTC_SetTime(&hrtc, &sTime, RTC_FORMAT_BCD);
-        HAL_RTC_SetDate(&hrtc, &sDate, RTC_FORMAT_BIN);
 
-    }else{  // read data from bkpram
-        HAL_RTC_GetTime(&hrtc, &sTime, RTC_FORMAT_BIN);
-        HAL_RTC_GetDate(&hrtc, &sDate, RTC_FORMAT_BIN);
+int RTC_set(rtc_t dcts_rtc){
+    int result = 0;
+    RTC_TimeTypeDef sTime = {0};
+    RTC_DateTypeDef sDate = {0};
 
-        dcts.dcts_rtc.hour = sTime.Hours;
-        dcts.dcts_rtc.minute = sTime.Minutes;
-        dcts.dcts_rtc.second = sTime.Seconds;
+    sTime.Hours = dcts_rtc.hour;
+    sTime.Minutes = dcts_rtc.minute;
+    sTime.Seconds = dcts_rtc.second;
 
-        dcts.dcts_rtc.day = sDate.Date;
-        dcts.dcts_rtc.month = sDate.Month;
-        dcts.dcts_rtc.year = sDate.Year + 2000;
-        dcts.dcts_rtc.weekday = sDate.WeekDay;
-    }
+    sDate.Date = dcts_rtc.day;
+    sDate.Month = dcts_rtc.month;
+    sDate.Year = (uint8_t)(dcts_rtc.year - 2000);
+
+    HAL_RTC_SetTime(&hrtc, &sTime, RTC_FORMAT_BIN);
+    HAL_RTC_SetDate(&hrtc, &sDate, RTC_FORMAT_BIN);
+
+    return result;
 }
 
 
@@ -282,20 +280,20 @@ static void MX_RTC_Init(void){
  * @param argument - None
  * @todo add group
  */
-void default_task(void const * argument){
+#define RTC_TASK_PERIOD 500
+void rtc_task(void const * argument){
 
     (void)argument;
-    /*RTC_TimeTypeDef time;
-    RTC_DateTypeDef date;*/
+    RTC_TimeTypeDef time = {0};
+    RTC_DateTypeDef date = {0};
+    RTC_Init();
     uint32_t last_wake_time = osKernelSysTick();
-
     while(1){
-        if(HAL_GetTick()%500 < DEFAULT_TASK_PERIOD){
-            HAL_GPIO_TogglePin(LED_PORT,LED_PIN);
-        }
-        /*HAL_RTC_GetDate(&hrtc,&date,RTC_FORMAT_BIN);
+        refresh_watchdog();
+        HAL_RTC_GetDate(&hrtc,&date,RTC_FORMAT_BIN);
         HAL_RTC_GetTime(&hrtc,&time,RTC_FORMAT_BIN);
 
+        taskENTER_CRITICAL();
         dcts.dcts_rtc.hour = time.Hours;
         dcts.dcts_rtc.minute = time.Minutes;
         dcts.dcts_rtc.second = time.Seconds;
@@ -303,10 +301,11 @@ void default_task(void const * argument){
         dcts.dcts_rtc.day = date.Date;
         dcts.dcts_rtc.month = date.Month;
         dcts.dcts_rtc.year = date.Year + 2000;
-        dcts.dcts_rtc.weekday = date.WeekDay;*/
+        dcts.dcts_rtc.weekday = date.WeekDay;
+        taskEXIT_CRITICAL();
 
-        //HAL_IWDG_Refresh(&hiwdg);
-        osDelayUntil(&last_wake_time, DEFAULT_TASK_PERIOD);
+        HAL_IWDG_Refresh(&hiwdg);
+        osDelayUntil(&last_wake_time, RTC_TASK_PERIOD);
     }
 }
 
@@ -315,6 +314,7 @@ void default_task(void const * argument){
  * @param argument
  */
 #define display_task_period 500
+#define SHOW_TIME 5
 void display_task(void const * argument){
     (void)argument;
     char string[100] = {0};
@@ -322,15 +322,6 @@ void display_task(void const * argument){
     u8 tick = 0;
     refresh_watchdog();
     max7219_init();
-    //font test
-    /*sprintf(string,"        0123456789AaBbCcDdEeFfGgHhIiJjKkLlMmNnOoPpQqRrSsTtUuVvWwXxYyZz*-[()]");
-    while(*p_string != '\0'){
-        max7219_print_string(p_string);
-        osDelay(500);
-        p_string++;
-        refresh_watchdog();
-    }
-    max7219_clr();*/
     sprintf(string, "       dcts%s", dcts.dcts_ver);
     while(*p_string != '\0'){
         max7219_print_string(p_string);
@@ -350,9 +341,9 @@ void display_task(void const * argument){
     uint32_t last_wake_time = osKernelSysTick();
     while(1){
         refresh_watchdog();
-        if(tick < 0*1000/display_task_period){
-            sprintf(string, "%d SEC", (int)HAL_GetTick()/1000);
-        }else if((tick >= 0*1000/display_task_period)&&(tick < 10*1000/display_task_period)){
+        if(tick < SHOW_TIME*1000/display_task_period){
+            sprintf(string, "%02d-%02d-%02d", dcts.dcts_rtc.hour, dcts.dcts_rtc.minute, dcts.dcts_rtc.second);
+        }else if((tick >= SHOW_TIME*1000/display_task_period)&&(tick < SHOW_TIME*2*1000/display_task_period)){
             if(dcts_meas[TMPR].value > 100.0f){
                 sprintf(string, " %.1f *C", (double)dcts_meas[TMPR].value);
             }else{
@@ -360,7 +351,7 @@ void display_task(void const * argument){
             }
         }
         tick++;
-        if(tick == 10*1000/display_task_period){
+        if(tick == SHOW_TIME*2*1000/display_task_period){
             tick = 0;
         }
         max7219_print_string(string);
@@ -383,6 +374,7 @@ void am2302_task (void const * argument){
     osDelay(1000);
     refresh_watchdog();
     while(1){
+        refresh_watchdog();
         if(HAL_GPIO_ReadPin(am2302_pin[0].port, am2302_pin[0].pin) == 0){
             taskENTER_CRITICAL();
             start_it = us_tim_get_value();
@@ -392,9 +384,18 @@ void am2302_task (void const * argument){
             }
             if(timeout >= 2000){
                 timeout = 0;    //timeout_error
-            }else{
+            }else if((timeout > 800) && (timeout < 1200)){
                 timeout = 0;
                 am2302_send(data, 0);
+            }else if((timeout > 300) && (timeout < 700)){
+                timeout = 0;
+                data = am2302_get_rtc(0);
+                if(data.error != 1){
+                    dcts.dcts_rtc.hour = (uint8_t)((data.hum & 0xFF00) >> 8);
+                    dcts.dcts_rtc.minute = (uint8_t)(data.hum & 0xFF);
+                    dcts.dcts_rtc.second = (uint8_t)((data.tmpr & 0xFF00) >> 8);
+                    RTC_set(dcts.dcts_rtc);
+                }
             }
             taskEXIT_CRITICAL();
         }else{

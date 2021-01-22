@@ -104,7 +104,7 @@ extern osThreadId uartTaskHandle;
 
 void display_task(void const * argument);
 void am2302_task(void const * argument);
-void default_task(void const * argument);
+void rtc_task(void const * argument);
 void refresh_watchdog(void);
 
 uint32_t us_tim_get_value(void);

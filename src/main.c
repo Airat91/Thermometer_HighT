@@ -379,6 +379,7 @@ void am2302_task (void const * argument){
         switch (irq_state) {
         case IRQ_SEND_TMPR:
             data.tmpr = (int16_t)(dcts_meas[TMPR].value * 10.0f);
+            data.hum = 0;
             am2302_send(data, 0);
             data_pin_irq_init();
             break;

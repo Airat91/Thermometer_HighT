@@ -84,6 +84,7 @@ osThreadId defaultTaskHandle;
 osThreadId displayTaskHandle;
 osThreadId adcTaskHandle;
 osThreadId am2302TaskHandle;
+uint8_t irq_state = IRQ_NONE;
 
 
 /* Private function prototypes -----------------------------------------------*/
@@ -96,6 +97,7 @@ static void save_float_to_bkp(u8 bkp_num, float var);
 static u8 read_bkp(u8 bkp_num);
 static float read_float_bkp(u8 bkp_num, u8 sign);
 static void led_lin_init(void);
+static void data_pin_irq_init(void);
 
 void HAL_TIM_MspPostInit(TIM_HandleTypeDef *htim);
 
@@ -366,42 +368,44 @@ void display_task(void const * argument){
 
 void am2302_task (void const * argument){
     (void)argument;
-    uint32_t start_it = 0;
-    uint32_t timeout = 0;
     am2302_init();
+    data_pin_irq_init();
     am2302_data_t data = {0};
     refresh_watchdog();
     osDelay(1000);
     refresh_watchdog();
     while(1){
         refresh_watchdog();
-        if(HAL_GPIO_ReadPin(am2302_pin[0].port, am2302_pin[0].pin) == 0){
-            taskENTER_CRITICAL();
-            start_it = us_tim_get_value();
+        switch (irq_state) {
+        case IRQ_SEND_TMPR:
             data.tmpr = (int16_t)(dcts_meas[TMPR].value * 10.0f);
-            while ((HAL_GPIO_ReadPin(am2302_pin[0].port, am2302_pin[0].pin) == 0)&&(timeout < 2000)) {
-                timeout = us_tim_get_value() - start_it;
+            am2302_send(data, 0);
+            data_pin_irq_init();
+            break;
+        case IRQ_READ_RTC:
+            data = am2302_get_rtc(0);
+            if(data.error != 1){
+                dcts.dcts_rtc.hour = (uint8_t)((data.hum & 0xFF00) >> 8);
+                dcts.dcts_rtc.minute = (uint8_t)(data.hum & 0xFF);
+                dcts.dcts_rtc.second = (uint8_t)((data.tmpr & 0xFF00) >> 8);
+                RTC_set(dcts.dcts_rtc);
             }
-            if(timeout >= 2000){
-                timeout = 0;    //timeout_error
-            }else if((timeout > 800) && (timeout < 1200)){
-                timeout = 0;
-                am2302_send(data, 0);
-            }else if((timeout > 300) && (timeout < 700)){
-                timeout = 0;
-                data = am2302_get_rtc(0);
-                if(data.error != 1){
-                    dcts.dcts_rtc.hour = (uint8_t)((data.hum & 0xFF00) >> 8);
-                    dcts.dcts_rtc.minute = (uint8_t)(data.hum & 0xFF);
-                    dcts.dcts_rtc.second = (uint8_t)((data.tmpr & 0xFF00) >> 8);
-                    RTC_set(dcts.dcts_rtc);
-                }
-            }
-            taskEXIT_CRITICAL();
-        }else{
+            data_pin_irq_init();
+            break;
+        default:
             taskYIELD();
         }
     }
+}
+
+static void data_pin_irq_init(void){
+    irq_state = IRQ_NONE;
+    GPIO_InitTypeDef GPIO_InitStruct = {0};
+    GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING_FALLING;
+    GPIO_InitStruct.Pull = GPIO_PULLUP;
+    GPIO_InitStruct.Pin = DATA_PIN;
+    HAL_GPIO_Init(DATA_PORT, &GPIO_InitStruct);
+    HAL_NVIC_EnableIRQ(EXTI15_10_IRQn);
 }
 
 static void MX_IWDG_Init(void){

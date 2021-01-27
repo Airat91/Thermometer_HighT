@@ -282,5 +282,24 @@ void EXTI9_5_IRQHandler(void) {
     */
 }
 
+void EXTI15_10_IRQHandler(void){
+    HAL_GPIO_EXTI_IRQHandler(DATA_PIN);
+    static u32 irq_time = 0;
+    static u32 irq_start = 0;
+    if(HAL_GPIO_ReadPin(DATA_PORT, DATA_PIN) == 0){
+        irq_start = us_tim_get_value();
+    }else{
+        irq_time = us_tim_get_value() - irq_start;
+        if((irq_time >= 800) && (irq_time < 1200)){
+            HAL_NVIC_DisableIRQ(EXTI15_10_IRQn);
+            irq_state = IRQ_SEND_TMPR;
+        }else if((irq_time >= 300) && (irq_time < 700)){
+            HAL_NVIC_DisableIRQ(EXTI15_10_IRQn);
+            irq_state = IRQ_READ_RTC;
+        }
+        irq_time = 0;
+    }
+}
+
 /* USER CODE END 1 */
 /************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/

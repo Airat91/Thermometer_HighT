@@ -85,6 +85,11 @@ typedef enum {
     VREFINT_ADC,
 }dcts_meas_t;
 
+typedef enum{
+    IRQ_NONE = 0,
+    IRQ_SEND_TMPR,
+    IRQ_READ_RTC,
+}irq_state_t;
 
 void _Error_Handler(char *, int);
 extern uint32_t us_cnt_H;
@@ -101,6 +106,7 @@ extern osThreadId adcTaskHandle;
 extern osThreadId am2302TaskHandle;
 extern osThreadId navigationtTaskHandle;
 extern osThreadId uartTaskHandle;
+extern uint8_t irq_state;
 
 void display_task(void const * argument);
 void am2302_task(void const * argument);

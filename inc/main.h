@@ -87,6 +87,7 @@ typedef enum {
 
  typedef enum{
      MENU_NAVIGATION,
+     DIGIT_POSITION,
      DIGIT_EDIT,
  }navigation_t;
 
@@ -155,6 +156,7 @@ void am2302_task(void const * argument);
 void rtc_task(void const * argument);
 void navigation_task(void const * argument);
 void refresh_watchdog(void);
+uint32_t uint32_pow(uint16_t x, uint8_t pow);
 
 uint32_t us_tim_get_value(void);
 void us_tim_delay(u32 us);

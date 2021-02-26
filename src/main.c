@@ -105,6 +105,7 @@ static void data_pin_irq_init(void);
 
 static void print_main(void);
 static void print_menu(void);
+static void print_value(u8 tick);
 
 void HAL_TIM_MspPostInit(TIM_HandleTypeDef *htim);
 
@@ -358,22 +359,12 @@ void display_task(void const * argument){
     uint32_t last_wake_time = osKernelSysTick();
     while(1){
         refresh_watchdog();
-        switch (selectedMenuItem->Page) {
-        case MAIN_PAGE:
+        if(selectedMenuItem->Page == MAIN_PAGE){
             print_main();
-            break;
-        case MAIN_MENU:
-        case COMMON_INFO:
-        case MEAS_CHANNELS:
-        case CONNECTION:
-        case DISPLAY:
-        case TIME:
-        case DATE:
+        }else if(selectedMenuItem->Child_num > 0){
             print_menu();
-            break;
-        default:
-            break;
-
+        }else if(selectedMenuItem->Child_num == 0){
+            print_value(0);
         }
         osDelayUntil(&last_wake_time, display_task_period);
     }
@@ -401,6 +392,83 @@ static void print_main(void){
 static void print_menu(void){
     char string[100] = {0};
     sprintf(string, selectedMenuItem->Text);
+    max7219_print_string(string);
+}
+
+static void print_value(u8 tick){
+    char string[100] = {0};
+    char * p_string = string;
+    switch (selectedMenuItem->Page){
+    case DCTS_VER:
+        sprintf(string, "%s %s",selectedMenuItem->Text, dcts.dcts_ver);
+        break;
+    case V_PWR:
+        sprintf(string, "%s %.2f",selectedMenuItem->Text, (double)dcts.dcts_pwr);
+        break;
+    case MEAS_CH_0:
+        sprintf(string, "%s %.2f",selectedMenuItem->Text, (double)dcts_meas[0].value);
+        break;
+    case MEAS_CH_1:
+        sprintf(string, "%s %.2f",selectedMenuItem->Text, (double)dcts_meas[1].value);
+        break;
+    case MEAS_CH_2:
+        sprintf(string, "%s %.2f",selectedMenuItem->Text, (double)dcts_meas[2].value);
+        break;
+    case MEAS_CH_3:
+        sprintf(string, "%s %.2f",selectedMenuItem->Text, (double)dcts_meas[3].value);
+        break;
+    case MEAS_CH_4:
+        sprintf(string, "%s %.2f",selectedMenuItem->Text, (double)dcts_meas[4].value);
+        break;
+    case MEAS_CH_5:
+        sprintf(string, "%s %.2f",selectedMenuItem->Text, (double)dcts_meas[5].value);
+        break;
+    case MDB_ADDR:
+        sprintf(string, "%s %d",selectedMenuItem->Text, dcts.dcts_address);
+        break;
+    case MDB_BITRATE:
+        sprintf(string, "%s none",selectedMenuItem->Text);
+        break;
+    case MDB_RECIEVED_CNT:
+        sprintf(string, "%s none",selectedMenuItem->Text);
+        break;
+    case MDB_SEND_CNT:
+        sprintf(string, "%s none",selectedMenuItem->Text);
+        break;
+    case MDB_OVERRUN_ERR:
+        sprintf(string, "%s none",selectedMenuItem->Text);
+        break;
+    case MDB_PARITY_ERR:
+        sprintf(string, "%s none",selectedMenuItem->Text);
+        break;
+    case MDB_FRAME_ERR:
+        sprintf(string, "%s none",selectedMenuItem->Text);
+        break;
+    case MDB_NOISE_ERR:
+        sprintf(string, "%s none",selectedMenuItem->Text);
+        break;
+    case LIGHT_LVL:
+        sprintf(string, "%s none",selectedMenuItem->Text);
+        break;
+    case TIME_HOUR:
+        sprintf(string, "%s %02d",selectedMenuItem->Text, dcts.dcts_rtc.hour);
+        break;
+    case TIME_MIN:
+        sprintf(string, "%s %02d",selectedMenuItem->Text, dcts.dcts_rtc.minute);
+        break;
+    case TIME_SEC:
+        sprintf(string, "%s %02d",selectedMenuItem->Text, dcts.dcts_rtc.second);
+        break;
+    case DATE_DAY:
+        sprintf(string, "%s %02d",selectedMenuItem->Text, dcts.dcts_rtc.day);
+        break;
+    case DATE_MONTH:
+        sprintf(string, "%s %02d",selectedMenuItem->Text, dcts.dcts_rtc.month);
+        break;
+    case DATE_YEAR:
+        sprintf(string, "%s %d",selectedMenuItem->Text, dcts.dcts_rtc.year);
+        break;
+    }
     max7219_print_string(string);
 }
 
@@ -442,6 +510,9 @@ void am2302_task (void const * argument){
     }
 }
 
+#define BUTTON_PRESS_TIME 1000
+#define BUTTON_PRESS_TIMEOUT 10000
+#define BUTTON_CLICK_TIME 10
 #define navigation_task_period 20
 void navigation_task (void const * argument){
     u16 timeout = 0;
@@ -450,31 +521,73 @@ void navigation_task (void const * argument){
     while(1){
         switch (navigation_style){
         case MENU_NAVIGATION:
-            if(button_click(BUTTON_OK,10)){
+            if(button_click(BUTTON_OK,BUTTON_CLICK_TIME)){
+                // go to next element
                 menuChange(selectedMenuItem->Next);
             }
-            if(button_clamp(BUTTON_OK,2000)){
+            if(button_click(BUTTON_BREAK,BUTTON_CLICK_TIME)){
+                // go to previous element
+                menuChange(selectedMenuItem->Previous);
+            }
+            if(button_clamp(BUTTON_OK,BUTTON_PRESS_TIME)){
+                // go to child
                 menuChange(selectedMenuItem->Child);
                 timeout = 0;
-                while((pressed_time[BUTTON_OK].last_state == BUTTON_PRESSED)&&(timeout < 10000)){
+                while((pressed_time[BUTTON_OK].last_state == BUTTON_PRESSED)&&(timeout < BUTTON_PRESS_TIMEOUT)){
                     osDelay(1);
                     timeout++;
                 }
                 pressed_time[BUTTON_OK].pressed = 0;
             }
-            if(button_click(BUTTON_BREAK,10)){
+            if(button_clamp(BUTTON_BREAK,BUTTON_PRESS_TIME)){
+                // go to parent
                 menuChange(selectedMenuItem->Parent);
-            }/*
-            if((pressed_time[BUTTON_OK].pressed > 0)&&(pressed_time[BUTTON_OK].pressed < navigation_task_period)){
-                menuChange(selectedMenuItem->Previous);
+                timeout = 0;
+                while((pressed_time[BUTTON_BREAK].last_state == BUTTON_PRESSED)&&(timeout < BUTTON_PRESS_TIMEOUT)){
+                    osDelay(1);
+                    timeout++;
+                }
+                pressed_time[BUTTON_BREAK].pressed = 0;
             }
-            if((pressed_time[BUTTON_BREAK].pressed > 0)&&(pressed_time[BUTTON_BREAK].pressed < navigation_task_period)){
-                menuChange(selectedMenuItem->Next);
-            }*/
             break;
-        }
-        /*case DIGIT_EDIT:
-            if((pressed_time[BUTTON_UP].pressed > 0)&&(pressed_time[BUTTON_UP].pressed < navigation_task_period)){
+        case DIGIT_POSITION:
+            if(button_click(BUTTON_OK,BUTTON_CLICK_TIME)){
+                // shift position left
+                if(edit_val.digit < edit_val.digit_max){
+                    edit_val.digit++;
+                }
+            }
+            if(button_click(BUTTON_BREAK,BUTTON_CLICK_TIME)){
+                // shift position right
+                if(edit_val.digit > 0){
+                    edit_val.digit--;
+                }
+            }
+            if(button_clamp(BUTTON_OK,BUTTON_PRESS_TIME)){
+                // enter to DIGIT_EDIT_MODE
+                navigation_style = DIGIT_EDIT;
+                timeout = 0;
+                while((pressed_time[BUTTON_OK].last_state == BUTTON_PRESSED)&&(timeout < BUTTON_PRESS_TIMEOUT)){
+                    osDelay(1);
+                    timeout++;
+                }
+                pressed_time[BUTTON_OK].pressed = 0;
+            }
+            if(button_clamp(BUTTON_BREAK,BUTTON_PRESS_TIME)){
+                // exit from DIGIT_POSITION_MODE
+                navigation_style = MENU_NAVIGATION;
+                timeout = 0;
+                while((pressed_time[BUTTON_BREAK].last_state == BUTTON_PRESSED)&&(timeout < BUTTON_PRESS_TIMEOUT)){
+                    osDelay(1);
+                    timeout++;
+                }
+                pressed_time[BUTTON_BREAK].pressed = 0;
+            }
+
+            break;
+        case DIGIT_EDIT:
+            if(button_click(BUTTON_OK,BUTTON_CLICK_TIME)){
+                // increment value
                 switch(edit_val.type){
                 case VAL_INT8:
                     if(*edit_val.p_val.p_int8 < edit_val.val_max.int8){
@@ -528,7 +641,8 @@ void navigation_task (void const * argument){
                     break;
                 }
             }
-            if((pressed_time[BUTTON_DOWN].pressed > 0)&&(pressed_time[BUTTON_DOWN].pressed < navigation_task_period)){
+            if(button_click(BUTTON_OK,BUTTON_CLICK_TIME)){
+                // decrement value
                 switch(edit_val.type){
                 case VAL_INT8:
                     if(*edit_val.p_val.p_int8 > edit_val.val_min.int8){
@@ -581,6 +695,32 @@ void navigation_task (void const * argument){
                 default:
                     break;
                 }
+            }
+            if(button_clamp(BUTTON_OK,BUTTON_PRESS_TIME)){
+                // exit from DIGIT_EDOT_MODE
+                navigation_style = DIGIT_POSITION;
+                timeout = 0;
+                while((pressed_time[BUTTON_OK].last_state == BUTTON_PRESSED)&&(timeout < BUTTON_PRESS_TIMEOUT)){
+                    osDelay(1);
+                    timeout++;
+                }
+                pressed_time[BUTTON_OK].pressed = 0;
+            }
+            if(button_clamp(BUTTON_BREAK,BUTTON_PRESS_TIME)){
+                // exit from DIGIT_EDOT_MODE
+                navigation_style = DIGIT_POSITION;
+                timeout = 0;
+                while((pressed_time[BUTTON_BREAK].last_state == BUTTON_PRESSED)&&(timeout < BUTTON_PRESS_TIMEOUT)){
+                    osDelay(1);
+                    timeout++;
+                }
+                pressed_time[BUTTON_BREAK].pressed = 0;
+            }
+            break;
+        }
+            /*if((pressed_time[BUTTON_UP].pressed > 0)&&(pressed_time[BUTTON_UP].pressed < navigation_task_period)){
+            }
+            if((pressed_time[BUTTON_DOWN].pressed > 0)&&(pressed_time[BUTTON_DOWN].pressed < navigation_task_period)){
             }
             if((pressed_time[BUTTON_LEFT].pressed > 0)&&(pressed_time[BUTTON_LEFT].pressed < navigation_task_period)){
                 if(edit_val.digit < edit_val.digit_max){
@@ -841,6 +981,16 @@ void refresh_watchdog(void){
 #if RELEASE
         HAL_IWDG_Refresh(&hiwdg);
 #endif //RELEASE
+}
+
+
+uint32_t uint32_pow(uint16_t x, uint8_t pow){
+    uint32_t result = 1;
+    while(pow){
+        result *= x;
+        pow--;
+    }
+    return result;
 }
 
 #ifdef  USE_FULL_ASSERT

@@ -8,22 +8,32 @@
 #define PWR_PIN         GPIO_PIN_0
 #define TMPR_PORT    	GPIOA
 #define TMPR_PIN     	GPIO_PIN_1
+#define RS_485_TX_PORT  GPIOA
+#define RS_485_TX_PIN   GPIO_PIN_2
+#define RS_485_RX_PORT  GPIOA
+#define RS_485_RX_PIN   GPIO_PIN_3
+#define RS_485_DE_PORT  GPIOA
+#define RS_485_DE_PIN   GPIO_PIN_4
+
+#define BUTTON_1_PORT   GPIOA
+#define BUTTON_1_PIN    GPIO_PIN_9
 
 #define DEBUG_TMS_PORT  GPIOA
 #define DEBUG_TMS_PIN   GPIO_PIN_13
 #define DEBUG_TCK_PORT  GPIOA
 #define DEBUG_TCK_PIN   GPIO_PIN_14
-#define MAX_CS_PORT     GPIOA
-#define MAX_CS_PIN      GPIO_PIN_15
 
 #define MAX_SCK_PORT    GPIOB
 #define MAX_SCK_PIN     GPIO_PIN_3
-
+#define MAX_CS_PORT     GPIOB
+#define MAX_CS_PIN      GPIO_PIN_4
 #define MAX_MOSI_PORT   GPIOB
 #define MAX_MOSI_PIN    GPIO_PIN_5
 
+#define BUTTON_2_PORT   GPIOB
+#define BUTTON_2_PIN    GPIO_PIN_11
 #define DATA_PORT       GPIOB
-#define DATA_PIN        GPIO_PIN_14
+#define DATA_PIN        GPIO_PIN_12
 
 #define LED_PORT        GPIOC
 #define LED_PIN         GPIO_PIN_13

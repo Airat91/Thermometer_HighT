@@ -60,6 +60,8 @@
 #include "portable.h"
 #include "am2302.h"
 #include "max7219.h"
+#include "buttons.h"
+#include "menu.h"
 
 /**
   * @defgroup MAIN
@@ -84,6 +86,8 @@ osThreadId defaultTaskHandle;
 osThreadId displayTaskHandle;
 osThreadId adcTaskHandle;
 osThreadId am2302TaskHandle;
+osThreadId buttonsTaskHandle;
+osThreadId navigationTaskHandle;
 uint8_t irq_state = IRQ_NONE;
 
 
@@ -99,13 +103,18 @@ static float read_float_bkp(u8 bkp_num, u8 sign);
 static void led_lin_init(void);
 static void data_pin_irq_init(void);
 
+static void print_main(void);
+static void print_menu(void);
+
 void HAL_TIM_MspPostInit(TIM_HandleTypeDef *htim);
 
 uint32_t us_cnt_H = 0;
+navigation_t navigation_style = MENU_NAVIGATION;
+edit_val_t edit_val = {0};
 
 void dcts_init (void) {
     dcts.dcts_id = DCTS_ID_MEASURE;
-    strcpy (dcts.dcts_ver, "1.0.0");
+    strcpy (dcts.dcts_ver, "1.1.0");
     strcpy (dcts.dcts_name, "Parilka");
     strcpy (dcts.dcts_name_cyr, "Парилка");
     dcts.dcts_address = 0x0C;
@@ -142,6 +151,7 @@ int main(void){
     tim2_init();
     dcts_init();
     led_lin_init();
+    menu_init();
 #if RELEASE
     MX_IWDG_Init();
 #endif //RELEASE
@@ -160,6 +170,11 @@ int main(void){
     osThreadDef(am2302_task, am2302_task, osPriorityNormal, 0, configMINIMAL_STACK_SIZE);
     am2302TaskHandle = osThreadCreate(osThread(am2302_task), NULL);
 
+    osThreadDef(buttons_task, buttons_task, osPriorityNormal, 0, configMINIMAL_STACK_SIZE);
+    buttonsTaskHandle = osThreadCreate(osThread(buttons_task), NULL);
+
+    osThreadDef(navigation_task, navigation_task, osPriorityNormal, 0, configMINIMAL_STACK_SIZE);
+    navigationTaskHandle = osThreadCreate(osThread(navigation_task), NULL);
 
     /* Start scheduler */
     osKernelStart();
@@ -322,7 +337,6 @@ void display_task(void const * argument){
     (void)argument;
     char string[100] = {0};
     char * p_string = string;
-    u8 tick = 0;
     refresh_watchdog();
     max7219_init();
     sprintf(string, "       dcts%s", dcts.dcts_ver);
@@ -344,22 +358,50 @@ void display_task(void const * argument){
     uint32_t last_wake_time = osKernelSysTick();
     while(1){
         refresh_watchdog();
-        if(tick < SHOW_TIME*1000/display_task_period){
-            sprintf(string, "%02d-%02d-%02d", dcts.dcts_rtc.hour, dcts.dcts_rtc.minute, dcts.dcts_rtc.second);
-        }else if((tick >= SHOW_TIME*1000/display_task_period)&&(tick < SHOW_TIME*2*1000/display_task_period)){
-            if(dcts_meas[TMPR].value > 100.0f){
-                sprintf(string, " %.1f *C", (double)dcts_meas[TMPR].value);
-            }else{
-                sprintf(string, "  %.1f *C", (double)dcts_meas[TMPR].value);
-            }
+        switch (selectedMenuItem->Page) {
+        case MAIN_PAGE:
+            print_main();
+            break;
+        case MAIN_MENU:
+        case COMMON_INFO:
+        case MEAS_CHANNELS:
+        case CONNECTION:
+        case DISPLAY:
+        case TIME:
+        case DATE:
+            print_menu();
+            break;
+        default:
+            break;
+
         }
-        tick++;
-        if(tick == SHOW_TIME*2*1000/display_task_period){
-            tick = 0;
-        }
-        max7219_print_string(string);
         osDelayUntil(&last_wake_time, display_task_period);
     }
+}
+
+static void print_main(void){
+    static u8 tick = 0;
+    char string[100] = {0};
+    if(tick < SHOW_TIME*1000/display_task_period){
+        sprintf(string, "%02d-%02d-%02d", dcts.dcts_rtc.hour, dcts.dcts_rtc.minute, dcts.dcts_rtc.second);
+    }else if((tick >= SHOW_TIME*1000/display_task_period)&&(tick < SHOW_TIME*2*1000/display_task_period)){
+        if(dcts_meas[TMPR].value > 100.0f){
+            sprintf(string, " %.1f *C", (double)dcts_meas[TMPR].value);
+        }else{
+            sprintf(string, "  %.1f *C", (double)dcts_meas[TMPR].value);
+        }
+    }
+    tick++;
+    if(tick == SHOW_TIME*2*1000/display_task_period){
+        tick = 0;
+    }
+    max7219_print_string(string);
+}
+
+static void print_menu(void){
+    char string[100] = {0};
+    sprintf(string, selectedMenuItem->Text);
+    max7219_print_string(string);
 }
 
 /**
@@ -397,6 +439,176 @@ void am2302_task (void const * argument){
         default:
             taskYIELD();
         }
+    }
+}
+
+#define navigation_task_period 20
+void navigation_task (void const * argument){
+    u16 timeout = 0;
+    (void)argument;
+    uint32_t last_wake_time = osKernelSysTick();
+    while(1){
+        switch (navigation_style){
+        case MENU_NAVIGATION:
+            if(button_click(BUTTON_OK,10)){
+                menuChange(selectedMenuItem->Next);
+            }
+            if(button_clamp(BUTTON_OK,2000)){
+                menuChange(selectedMenuItem->Child);
+                timeout = 0;
+                while((pressed_time[BUTTON_OK].last_state == BUTTON_PRESSED)&&(timeout < 10000)){
+                    osDelay(1);
+                    timeout++;
+                }
+                pressed_time[BUTTON_OK].pressed = 0;
+            }
+            if(button_click(BUTTON_BREAK,10)){
+                menuChange(selectedMenuItem->Parent);
+            }/*
+            if((pressed_time[BUTTON_OK].pressed > 0)&&(pressed_time[BUTTON_OK].pressed < navigation_task_period)){
+                menuChange(selectedMenuItem->Previous);
+            }
+            if((pressed_time[BUTTON_BREAK].pressed > 0)&&(pressed_time[BUTTON_BREAK].pressed < navigation_task_period)){
+                menuChange(selectedMenuItem->Next);
+            }*/
+            break;
+        }
+        /*case DIGIT_EDIT:
+            if((pressed_time[BUTTON_UP].pressed > 0)&&(pressed_time[BUTTON_UP].pressed < navigation_task_period)){
+                switch(edit_val.type){
+                case VAL_INT8:
+                    if(*edit_val.p_val.p_int8 < edit_val.val_max.int8){
+                        *edit_val.p_val.p_int8 += (int8_t)uint32_pow(10, edit_val.digit);
+                    }
+                    if((*edit_val.p_val.p_int8 > edit_val.val_max.int8)||(*edit_val.p_val.p_int8 < edit_val.val_min.int8)){ //if out of range
+                        *edit_val.p_val.p_int8 = edit_val.val_max.int8;
+                    }
+                    break;
+                case VAL_UINT8:
+                    if(*edit_val.p_val.p_uint8 < edit_val.val_max.uint8){
+                        *edit_val.p_val.p_uint8 += (uint8_t)uint32_pow(10, edit_val.digit);
+                    }
+                    if((*edit_val.p_val.p_uint8 > edit_val.val_max.uint8)||(*edit_val.p_val.p_uint8 < edit_val.val_min.uint8)){ //if out of range
+                        *edit_val.p_val.p_uint8 = edit_val.val_max.uint8;
+                    }
+                    break;
+                case VAL_INT16:
+                    if(*edit_val.p_val.p_int16 < edit_val.val_max.int16){
+                        *edit_val.p_val.p_int16 += (int16_t)uint32_pow(10, edit_val.digit);
+                    }
+                    if((*edit_val.p_val.p_int16 > edit_val.val_max.int16)||(*edit_val.p_val.p_int16 < edit_val.val_min.int16)){ //if out of range
+                        *edit_val.p_val.p_int16 = edit_val.val_max.int16;
+                    }
+                    break;
+                case VAL_UINT16:
+                    if(*edit_val.p_val.p_uint16 < edit_val.val_max.uint16){
+                        *edit_val.p_val.p_uint16 += (uint16_t)uint32_pow(10, edit_val.digit);
+                    }
+                    if((*edit_val.p_val.p_uint16 > edit_val.val_max.uint16)||(*edit_val.p_val.p_uint16 < edit_val.val_min.uint16)){ //if out of range
+                        *edit_val.p_val.p_uint16 = edit_val.val_max.uint16;
+                    }
+                    break;
+                case VAL_INT32:
+                    if(*edit_val.p_val.p_int32 < edit_val.val_max.int32){
+                        *edit_val.p_val.p_int32 += (int32_t)uint32_pow(10, edit_val.digit);
+                    }
+                    if((*edit_val.p_val.p_int32 > edit_val.val_max.int32)||(*edit_val.p_val.p_int32 < edit_val.val_min.int32)){ //if out of range
+                        *edit_val.p_val.p_int32 = edit_val.val_max.int32;
+                    }
+                    break;
+                case VAL_UINT32:
+                    if(*edit_val.p_val.p_uint32 < edit_val.val_max.uint32){
+                        *edit_val.p_val.p_uint32 += (uint32_t)uint32_pow(10, edit_val.digit);
+                    }
+                    if((*edit_val.p_val.p_uint32 > edit_val.val_max.uint32)||(*edit_val.p_val.p_uint32 < edit_val.val_min.uint32)){ //if out of range
+                        *edit_val.p_val.p_uint32 = edit_val.val_max.uint32;
+                    }
+                    break;
+                default:
+                    break;
+                }
+            }
+            if((pressed_time[BUTTON_DOWN].pressed > 0)&&(pressed_time[BUTTON_DOWN].pressed < navigation_task_period)){
+                switch(edit_val.type){
+                case VAL_INT8:
+                    if(*edit_val.p_val.p_int8 > edit_val.val_min.int8){
+                        *edit_val.p_val.p_int8 -= (int8_t)uint32_pow(10, edit_val.digit);
+                    }
+                    if((*edit_val.p_val.p_int8 > edit_val.val_max.int8)||(*edit_val.p_val.p_int8 < edit_val.val_min.int8)){ //if out of range
+                        *edit_val.p_val.p_int8 = edit_val.val_min.int8;
+                    }
+                    break;
+                case VAL_UINT8:
+                    if(*edit_val.p_val.p_uint8 > edit_val.val_min.uint8){
+                        *edit_val.p_val.p_uint8 -= (uint8_t)uint32_pow(10, edit_val.digit);
+                    }
+                    if((*edit_val.p_val.p_uint8 > edit_val.val_max.uint8)||(*edit_val.p_val.p_uint8 < edit_val.val_min.uint8)){ //if out of range
+                        *edit_val.p_val.p_uint8 = edit_val.val_min.uint8;
+                    }
+                    break;
+                case VAL_INT16:
+                    if(*edit_val.p_val.p_int16 > edit_val.val_min.int16){
+                        *edit_val.p_val.p_int16 -= (int16_t)uint32_pow(10, edit_val.digit);
+                    }
+                    if((*edit_val.p_val.p_int16 > edit_val.val_max.int16)||(*edit_val.p_val.p_int16 < edit_val.val_min.int16)){ //if out of range
+                        *edit_val.p_val.p_int16 = edit_val.val_min.int16;
+                    }
+                    break;
+                case VAL_UINT16:
+                    if(*edit_val.p_val.p_uint16 > edit_val.val_min.uint16){
+                        *edit_val.p_val.p_uint16 -= (uint16_t)uint32_pow(10, edit_val.digit);
+                    }
+                    if((*edit_val.p_val.p_uint16 > edit_val.val_max.uint16)||(*edit_val.p_val.p_uint16 < edit_val.val_min.uint16)){ //if out of range
+                        *edit_val.p_val.p_uint16 = edit_val.val_min.uint16;
+                    }
+                    break;
+                case VAL_INT32:
+                    if(*edit_val.p_val.p_int32 > edit_val.val_min.int32){
+                        *edit_val.p_val.p_int32 -= (int32_t)uint32_pow(10, edit_val.digit);
+                    }
+                    if((*edit_val.p_val.p_int32 > edit_val.val_max.int32)||(*edit_val.p_val.p_int32 < edit_val.val_min.int32)){ //if out of range
+                        *edit_val.p_val.p_int32 = edit_val.val_min.int32;
+                    }
+                    break;
+                case VAL_UINT32:
+                    if(*edit_val.p_val.p_uint32 > edit_val.val_min.uint32){
+                        *edit_val.p_val.p_uint32 -= (uint32_t)uint32_pow(10, edit_val.digit);
+                    }
+                    if((*edit_val.p_val.p_uint32 > edit_val.val_max.uint32)||(*edit_val.p_val.p_uint32 < edit_val.val_min.uint32)){ //if out of range
+                        *edit_val.p_val.p_uint32 = edit_val.val_min.uint32;
+                    }
+                    break;
+                default:
+                    break;
+                }
+            }
+            if((pressed_time[BUTTON_LEFT].pressed > 0)&&(pressed_time[BUTTON_LEFT].pressed < navigation_task_period)){
+                if(edit_val.digit < edit_val.digit_max){
+                    edit_val.digit++;
+                }
+            }
+            if((pressed_time[BUTTON_RIGHT].pressed > 0)&&(pressed_time[BUTTON_RIGHT].pressed < navigation_task_period)){
+                if(edit_val.digit > 0){
+                    edit_val.digit--;
+                }
+            }
+            if((pressed_time[BUTTON_OK].pressed > navigation_task_period)){
+                while(pressed_time[BUTTON_OK].last_state == BUTTON_PRESSED){
+                }
+                navigation_style = MENU_NAVIGATION;
+            }
+
+            break;
+        }
+        if((pressed_time[BUTTON_BREAK].pressed > 0)&&(pressed_time[BUTTON_BREAK].pressed < navigation_task_period)){
+            if(LCD.auto_off == 0){
+                LCD_backlight_toggle();
+            }
+        }
+        if((pressed_time[BUTTON_SET].pressed > 0)&&(pressed_time[BUTTON_SET].pressed < navigation_task_period)){
+            save_params();
+        }*/
+        osDelayUntil(&last_wake_time, navigation_task_period);
     }
 }
 

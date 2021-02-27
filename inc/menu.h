@@ -17,6 +17,8 @@
 #define PARENT     ((menuItem*)pgm_read_word(&selectedMenuItem->Parent))
 #define CHILD      ((menuItem*)pgm_read_word(&selectedMenuItem->Child))
 #define SELECT		(pgm_read_byte(&selectedMenuItem->Select))
+#define NULL_ENTRY  Null_Menu
+#define EDITED_VAL  edit_value
 
 /*========== TYPEDEFS ==========*/
 
@@ -33,25 +35,6 @@ typedef enum {
     MEAS_CH_3,
     MEAS_CH_4,
     MEAS_CH_5,
-    LVL_CALIB,
-    LVL_0,
-    LVL_20,
-    LVL_40,
-    LVL_60,
-    LVL_80,
-    LVL_100,
-    TMPR_CALIB,
-    ADC_0,
-    ADC_10,
-    ADC_20,
-    ADC_30,
-    ADC_40,
-    ADC_50,
-    ADC_60,
-    ADC_70,
-    ADC_80,
-    ADC_90,
-    ADC_100,
     CONNECTION,
     MDB_ADDR,
     MDB_BITRATE,
@@ -63,7 +46,6 @@ typedef enum {
     MDB_NOISE_ERR,
     DISPLAY,
     LIGHT_LVL,
-    AUTO_OFF,
     SAVE_CHANGES,
     TIME,
     TIME_HOUR,
@@ -73,6 +55,7 @@ typedef enum {
     DATE_DAY,
     DATE_MONTH,
     DATE_YEAR,
+    EDIT,
 } menu_page_t;
 
 typedef struct {
@@ -92,6 +75,7 @@ typedef struct {
 extern menuItem main_page;
 extern menuItem save_changes;
 extern menuItem* selectedMenuItem;
+extern menuItem edit_value;
 
 /*========== FUNCTION PROTOTYPES ==========*/
 

@@ -157,6 +157,7 @@ void rtc_task(void const * argument);
 void navigation_task(void const * argument);
 void refresh_watchdog(void);
 uint32_t uint32_pow(uint16_t x, uint8_t pow);
+u16 str_smb_num(char* string, char symbol);
 
 uint32_t us_tim_get_value(void);
 void us_tim_delay(u32 us);

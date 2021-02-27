@@ -62,6 +62,7 @@
 #include "max7219.h"
 #include "buttons.h"
 #include "menu.h"
+#include <string.h>
 
 /**
   * @defgroup MAIN
@@ -334,10 +335,13 @@ void rtc_task(void const * argument){
  */
 #define display_task_period 500
 #define SHOW_TIME 5
+#define PAUSE_DELAY 2
 void display_task(void const * argument){
     (void)argument;
-    char string[100] = {0};
+    char string[50] = {0};
     char * p_string = string;
+    u8 tick = 0;
+    menu_page_t last_page = selectedMenuItem->Page;
     refresh_watchdog();
     max7219_init();
     sprintf(string, "       dcts%s", dcts.dcts_ver);
@@ -359,20 +363,29 @@ void display_task(void const * argument){
     uint32_t last_wake_time = osKernelSysTick();
     while(1){
         refresh_watchdog();
+        if(last_page != selectedMenuItem->Page){
+            tick = 0;
+            last_page = selectedMenuItem->Page;
+        }
         if(selectedMenuItem->Page == MAIN_PAGE){
             print_main();
         }else if(selectedMenuItem->Child_num > 0){
             print_menu();
         }else if(selectedMenuItem->Child_num == 0){
-            print_value(0);
+            if(tick > PAUSE_DELAY){
+                print_value(tick - PAUSE_DELAY);
+            }else{
+                print_value(0);
+            }
         }
+        tick++;
         osDelayUntil(&last_wake_time, display_task_period);
     }
 }
 
 static void print_main(void){
     static u8 tick = 0;
-    char string[100] = {0};
+    char string[50] = {0};
     if(tick < SHOW_TIME*1000/display_task_period){
         sprintf(string, "%02d-%02d-%02d", dcts.dcts_rtc.hour, dcts.dcts_rtc.minute, dcts.dcts_rtc.second);
     }else if((tick >= SHOW_TIME*1000/display_task_period)&&(tick < SHOW_TIME*2*1000/display_task_period)){
@@ -390,13 +403,13 @@ static void print_main(void){
 }
 
 static void print_menu(void){
-    char string[100] = {0};
+    char string[50] = {0};
     sprintf(string, selectedMenuItem->Text);
     max7219_print_string(string);
 }
 
-static void print_value(u8 tick){
-    char string[100] = {0};
+static void print_value(u8 position){
+    char string[50] = {0};
     char * p_string = string;
     switch (selectedMenuItem->Page){
     case DCTS_VER:
@@ -425,6 +438,14 @@ static void print_value(u8 tick){
         break;
     case MDB_ADDR:
         sprintf(string, "%s %d",selectedMenuItem->Text, dcts.dcts_address);
+        if(navigation_style == MENU_NAVIGATION){
+            edit_val.type = VAL_UINT8;
+            edit_val.digit_max = 1;
+            edit_val.digit = 0;
+            edit_val.val_min.uint8 = 0;
+            edit_val.val_max.uint8 = 99;
+            edit_val.p_val.p_uint8 = &dcts.dcts_address;
+        }
         break;
     case MDB_BITRATE:
         sprintf(string, "%s none",selectedMenuItem->Text);
@@ -452,24 +473,98 @@ static void print_value(u8 tick){
         break;
     case TIME_HOUR:
         sprintf(string, "%s %02d",selectedMenuItem->Text, dcts.dcts_rtc.hour);
+        if(navigation_style == MENU_NAVIGATION){
+            edit_val.type = VAL_UINT8;
+            edit_val.digit_max = 1;
+            edit_val.digit = 0;
+            edit_val.val_min.uint8 = 0;
+            edit_val.val_max.uint8 = 23;
+            edit_val.p_val.p_uint8 = &dcts.dcts_rtc.hour;
+        }
         break;
     case TIME_MIN:
         sprintf(string, "%s %02d",selectedMenuItem->Text, dcts.dcts_rtc.minute);
+        if(navigation_style == MENU_NAVIGATION){
+            edit_val.type = VAL_UINT8;
+            edit_val.digit_max = 1;
+            edit_val.digit = 0;
+            edit_val.val_min.uint8 = 0;
+            edit_val.val_max.uint8 = 59;
+            edit_val.p_val.p_uint8 = &dcts.dcts_rtc.minute;
+        }
         break;
     case TIME_SEC:
         sprintf(string, "%s %02d",selectedMenuItem->Text, dcts.dcts_rtc.second);
+        if(navigation_style == MENU_NAVIGATION){
+            edit_val.type = VAL_UINT8;
+            edit_val.digit_max = 1;
+            edit_val.digit = 0;
+            edit_val.val_min.uint8 = 0;
+            edit_val.val_max.uint8 = 59;
+            edit_val.p_val.p_uint8 = &dcts.dcts_rtc.second;
+        }
         break;
     case DATE_DAY:
         sprintf(string, "%s %02d",selectedMenuItem->Text, dcts.dcts_rtc.day);
+        if(navigation_style == MENU_NAVIGATION){
+            edit_val.type = VAL_UINT8;
+            edit_val.digit_max = 1;
+            edit_val.digit = 0;
+            edit_val.val_min.uint8 = 1;
+            edit_val.val_max.uint8 = 31;
+            edit_val.p_val.p_uint8 = &dcts.dcts_rtc.day;
+        }
         break;
     case DATE_MONTH:
         sprintf(string, "%s %02d",selectedMenuItem->Text, dcts.dcts_rtc.month);
+        if(navigation_style == MENU_NAVIGATION){
+            edit_val.type = VAL_UINT8;
+            edit_val.digit_max = 1;
+            edit_val.digit = 0;
+            edit_val.val_min.uint8 = 1;
+            edit_val.val_max.uint8 = 12;
+            edit_val.p_val.p_uint8 = &dcts.dcts_rtc.month;
+        }
         break;
     case DATE_YEAR:
         sprintf(string, "%s %d",selectedMenuItem->Text, dcts.dcts_rtc.year);
+        if(navigation_style == MENU_NAVIGATION){
+            edit_val.type = VAL_UINT16;
+            edit_val.digit_max = 3;
+            edit_val.digit = 0;
+            edit_val.val_min.uint16 = 2000;
+            edit_val.val_max.uint16 = 5000;
+            edit_val.p_val.p_uint16 = &dcts.dcts_rtc.year;
+        }
         break;
     }
-    max7219_print_string(string);
+
+    if(navigation_style == DIGIT_POSITION){
+        // add point before edit position
+        char string_pos[50] = {0};
+        strncpy(string_pos,string,strlen(string) - edit_val.digit - 1);
+        strcat(string_pos,".");
+        p_string += (strlen(string) - edit_val.digit - 1);
+        strcat(string_pos,p_string);
+        strcpy(string,string_pos);
+        p_string = string;
+    }else if(navigation_style == DIGIT_EDIT){
+        // blink edited digit
+        if(position%2 == 1){
+            string[strlen(string) - edit_val.digit - 1] = ' ';
+        }
+    }
+
+    // remove points len from string
+    u8 len = (u8)strlen(string) - (u8)str_smb_num(string, '.');
+    if(len > 8){
+        if(position < (len-8)){
+            p_string += position;
+        }else{
+            p_string += (len-8);
+        }
+    }
+    max7219_print_string(p_string);
 }
 
 /**
@@ -531,7 +626,11 @@ void navigation_task (void const * argument){
             }
             if(button_clamp(BUTTON_OK,BUTTON_PRESS_TIME)){
                 // go to child
-                menuChange(selectedMenuItem->Child);
+                if(selectedMenuItem->Child == &EDITED_VAL){
+                    navigation_style = DIGIT_POSITION;
+                }else{
+                    menuChange(selectedMenuItem->Child);
+                }
                 timeout = 0;
                 while((pressed_time[BUTTON_OK].last_state == BUTTON_PRESSED)&&(timeout < BUTTON_PRESS_TIMEOUT)){
                     osDelay(1);
@@ -641,7 +740,7 @@ void navigation_task (void const * argument){
                     break;
                 }
             }
-            if(button_click(BUTTON_OK,BUTTON_CLICK_TIME)){
+            if(button_click(BUTTON_BREAK,BUTTON_CLICK_TIME)){
                 // decrement value
                 switch(edit_val.type){
                 case VAL_INT8:
@@ -718,36 +817,6 @@ void navigation_task (void const * argument){
             }
             break;
         }
-            /*if((pressed_time[BUTTON_UP].pressed > 0)&&(pressed_time[BUTTON_UP].pressed < navigation_task_period)){
-            }
-            if((pressed_time[BUTTON_DOWN].pressed > 0)&&(pressed_time[BUTTON_DOWN].pressed < navigation_task_period)){
-            }
-            if((pressed_time[BUTTON_LEFT].pressed > 0)&&(pressed_time[BUTTON_LEFT].pressed < navigation_task_period)){
-                if(edit_val.digit < edit_val.digit_max){
-                    edit_val.digit++;
-                }
-            }
-            if((pressed_time[BUTTON_RIGHT].pressed > 0)&&(pressed_time[BUTTON_RIGHT].pressed < navigation_task_period)){
-                if(edit_val.digit > 0){
-                    edit_val.digit--;
-                }
-            }
-            if((pressed_time[BUTTON_OK].pressed > navigation_task_period)){
-                while(pressed_time[BUTTON_OK].last_state == BUTTON_PRESSED){
-                }
-                navigation_style = MENU_NAVIGATION;
-            }
-
-            break;
-        }
-        if((pressed_time[BUTTON_BREAK].pressed > 0)&&(pressed_time[BUTTON_BREAK].pressed < navigation_task_period)){
-            if(LCD.auto_off == 0){
-                LCD_backlight_toggle();
-            }
-        }
-        if((pressed_time[BUTTON_SET].pressed > 0)&&(pressed_time[BUTTON_SET].pressed < navigation_task_period)){
-            save_params();
-        }*/
         osDelayUntil(&last_wake_time, navigation_task_period);
     }
 }
@@ -804,6 +873,29 @@ static void tim2_init(void){
         _Error_Handler(__FILE__, __LINE__);
     }
 }
+
+/**
+ * @brief Get number of symbols in string
+ * @param string - string for find
+ * @param symbol - symbol for find
+ * @return number of symbols in string
+ */
+u16 str_smb_num(char* string, char symbol){
+    u16 result = 0;
+    char * p_string = string;
+    while(1){
+        p_string = strchr(p_string, symbol);
+        if(p_string){
+            result++;
+            p_string++;
+        }else{
+            break;
+        }
+    }
+
+    return result;
+}
+
 /**
  * @brief Get value from global us timer
  * @return global us timer value

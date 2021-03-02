@@ -31,13 +31,11 @@ menuItem edit_value = {
 };
 
 menuItem* selectedMenuItem;
-static menuItem* menuStack[10];
-static volatile uint8_t menuStackTop;
 
 //                  NAME           NEXT            PREV            PARENT          CHILD        GHILD_NUM   PAGE                    TEXT
 MAKE_MENU       (main_page,     main_menu,      main_menu,      NULL_ENTRY,     main_menu,      0,          MAIN_PAGE,          "DISPLAY");
 MAKE_MENU       (main_menu,     main_page,      main_page,      main_page,     common_info,     4,          MAIN_MENU,          "MENU");
-  MAKE_MENU     (common_info,   meas_channels,  date,           main_menu,      dcts_ver,       2,          COMMON_INFO,        "INFO");
+  MAKE_MENU     (common_info,   meas_channels,  save_changes,   main_menu,      dcts_ver,       2,          COMMON_INFO,        "INFO");
     MAKE_MENU   (dcts_ver,      v_pwr,          v_pwr,          common_info,    NULL_ENTRY,     0,          DCTS_VER,           "dcts");
     MAKE_MENU   (v_pwr,         dcts_ver,       dcts_ver,       common_info,    NULL_ENTRY,     0,          V_PWR,              "u_in");
   MAKE_MENU     (meas_channels, connection,     common_info,    main_menu,      meas_ch_0,      6,          MEAS_CHANNELS,      "CHANNELS");
@@ -57,17 +55,18 @@ MAKE_MENU       (main_menu,     main_page,      main_page,      main_page,     c
     MAKE_MENU   (frame_err,     noise_err,      parity_err,     connection,     NULL_ENTRY,     0,          MDB_FRAME_ERR,      "frame_err");
     MAKE_MENU   (noise_err,     mdb_addr,       frame_err,      connection,     NULL_ENTRY,     0,          MDB_NOISE_ERR,      "noise_err");
   MAKE_MENU     (display,       time,           connection,     main_menu,      light_lvl,      1,          DISPLAY,            "DISPLAY");
-    MAKE_MENU   (light_lvl,     NULL_ENTRY,     NULL_ENTRY,     display,        EDITED_VAL,     0,          LIGHT_LVL,          "Light");
+    MAKE_MENU   (light_lvl,     skin_select,    skin_select,    display,        EDITED_VAL,     0,          LIGHT_LVL,          "Light");
+    MAKE_MENU   (skin_select,   light_lvl,      light_lvl,      display,        EDITED_VAL,     0,          SKIN,               "Skin");
   MAKE_MENU     (time,          date,           display,        main_menu,      time_hour,      3,          TIME,               "SET TIME");
     MAKE_MENU   (time_hour,     time_min,       time_sec,       time,           EDITED_VAL,     0,          TIME_HOUR,          "hour");
     MAKE_MENU   (time_min,      time_sec,       time_hour,      time,           EDITED_VAL,     0,          TIME_MIN,           "minute");
     MAKE_MENU   (time_sec,      time_hour,      time_min,       time,           EDITED_VAL,     0,          TIME_SEC,           "second");
-  MAKE_MENU     (date,          common_info,    time,           main_menu,      date_day,       3,          DATE,               "SET DATE");
+  MAKE_MENU     (date,          save_changes,   time,           main_menu,      date_day,       3,          DATE,               "SET DATE");
     MAKE_MENU   (date_day,      date_month,     date_year,      date,           EDITED_VAL,     0,          DATE_DAY,           "day");
     MAKE_MENU   (date_month,    date_year,      date_day,       date,           EDITED_VAL,     0,          DATE_MONTH,         "month");
     MAKE_MENU   (date_year,     date_day,       date_month,     date,           EDITED_VAL,     0,          DATE_YEAR,          "year");
-
-MAKE_MENU       (save_changes,  NULL_ENTRY,     NULL_ENTRY,     NULL_ENTRY,     NULL_ENTRY,     0,          SAVE_CHANGES,       "SAVE");
+  MAKE_MENU     (save_changes,  common_info,    date,           main_menu,      saving,         1,          SAVE_CHANGES,       "SAVE CONFIGURATION");
+    MAKE_MENU   (saving,        NULL_ENTRY,     NULL_ENTRY,     save_changes,   EDITED_VAL,     0,          SAVING,             "Saving");
 
 
 /*========== FUNCTIONS ==========*/

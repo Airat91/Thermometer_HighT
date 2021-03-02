@@ -58,7 +58,8 @@
 #include "type_def.h"
 
 #define TIME_YIELD_THRESHOLD 100
-#define MEAS_NUM 4
+#define MEAS_NUM 6
+#define SAVED_PARAMS_SIZE 5
 
 
 /* ########################## Assert Selection ############################## */
@@ -83,50 +84,69 @@ typedef enum {
     TMPR_ADC,
     TMPR_V,
     VREFINT_ADC,
+    AM2302_T,
+    AM2302_H,
 }dcts_meas_t;
 
- typedef enum{
-     MENU_NAVIGATION,
-     DIGIT_POSITION,
-     DIGIT_EDIT,
- }navigation_t;
+typedef enum{
+    MENU_NAVIGATION,
+    DIGIT_POSITION,
+    DIGIT_EDIT,
+}navigation_t;
 
- typedef enum{
-     VAL_UNKNOWN = 0,
-     VAL_UINT8,
-     VAL_INT8,
-     VAL_UINT16,
-     VAL_INT16,
-     VAL_UINT32,
-     VAL_INT32,
- }edit_val_type;
+typedef enum{
+    HIGH_T_AND_TIME = 0,
+    HIGH_T_ONLY,
+    TIME_ONLY,
+}skin_t;
 
- typedef union{
-     uint8_t * p_uint8;
-     int8_t * p_int8;
-     uint16_t * p_uint16;
-     int16_t * p_int16;
-     uint32_t * p_uint32;
-     int32_t * p_int32;
- }edit_val_p_type_t;
+typedef enum{
+    VAL_UNKNOWN = 0,
+    VAL_UINT8,
+    VAL_INT8,
+    VAL_UINT16,
+    VAL_INT16,
+    VAL_UINT32,
+    VAL_INT32,
+}edit_val_type;
 
-  typedef union{
-      uint8_t uint8;
-      int8_t int8;
-      uint16_t uint16;
-      int16_t int16;
-      uint32_t uint32;
-      int32_t int32;
-  }edit_val_type_t;
+typedef union{
+    uint8_t * p_uint8;
+    int8_t * p_int8;
+    uint16_t * p_uint16;
+    int16_t * p_int16;
+    uint32_t * p_uint32;
+    int32_t * p_int32;
+}edit_val_p_type_t;
 
- typedef struct{
-     edit_val_p_type_t p_val;
-     edit_val_type_t val_min;
-     edit_val_type_t val_max;
-     uint8_t digit;
-     uint8_t digit_max;
-     edit_val_type type;
- }edit_val_t;
+typedef union{
+    uint8_t uint8;
+    int8_t int8;
+    uint16_t uint16;
+    int16_t int16;
+    uint32_t uint32;
+    int32_t int32;
+}edit_val_type_t;
+
+typedef struct{
+    edit_val_p_type_t p_val;
+    edit_val_type_t val_min;
+    edit_val_type_t val_max;
+    uint8_t digit;
+    uint8_t digit_max;
+    edit_val_type type;
+}edit_val_t;
+
+typedef union{
+    struct{
+        uint16_t mdb_address;
+        uint16_t mdb_bitrate;
+        uint16_t light_lvl;
+        uint16_t skin;
+        uint16_t extern_m2302_enable;
+    }params;
+    uint16_t word[SAVED_PARAMS_SIZE];
+}saved_to_flash_t;
 
 typedef enum{
     IRQ_NONE = 0,
@@ -150,6 +170,7 @@ extern osThreadId am2302TaskHandle;
 extern osThreadId navigationTaskHandle;
 extern osThreadId uartTaskHandle;
 extern uint8_t irq_state;
+extern saved_to_flash_t config;
 
 void display_task(void const * argument);
 void am2302_task(void const * argument);

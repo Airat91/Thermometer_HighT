@@ -391,7 +391,7 @@ void display_task(void const * argument){
 static void print_main(void){
     static u8 tick = 0;
     char string[50] = {0};
-    switch (skin){
+    switch (config.params.skin){
     case HIGH_T_AND_TIME:
         if(tick < SHOW_TIME*1000/display_task_period){
             sprintf(string, "%02d-%02d-%02d", dcts.dcts_rtc.hour, dcts.dcts_rtc.minute, dcts.dcts_rtc.second);

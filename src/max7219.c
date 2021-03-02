@@ -39,7 +39,7 @@ int max7219_init (void){
     max7219_send(0x0C,0x00);
     max7219_send(0x0C,0x01);
     max7219_send(0x09,0x00);
-    max7219_send(0x0A,0x02);
+    max7219_send(0x0A,(u8)(config.params.light_lvl/10));    // light level
     max7219_send(0x0B,DIGIT_NUM - 1);
     //test
     /*max7219_send(0x0F,0x01);

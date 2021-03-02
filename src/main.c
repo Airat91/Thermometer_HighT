@@ -69,7 +69,8 @@
   * @defgroup MAIN
   */
 
-#define RELEASE 1
+#define RELEASE 0
+#define RESET_HOLD 3000
 
 typedef enum{
     READ_FLOAT_SIGNED = 0,
@@ -402,6 +403,24 @@ void display_task(void const * argument){
                 print_value(0);
             }
         }
+        if((pressed_time[BUTTON_OK].pressed > RESET_HOLD)&&(pressed_time[BUTTON_BREAK].pressed > RESET_HOLD)){
+            // reset
+            sprintf(string, "       reset");
+            p_string = string;
+            while(*p_string != '\0'){
+                max7219_print_string(p_string);
+                if(*p_string == 'r'){
+                    refresh_watchdog();
+                    osDelay(1000);
+                }else{
+                    refresh_watchdog();
+                    osDelay(100);
+                }
+                p_string++;
+                refresh_watchdog();
+            }
+            NVIC_SystemReset();
+        }
         tick++;
         osDelayUntil(&last_wake_time, display_task_period);
     }
@@ -520,6 +539,17 @@ static void print_value(u8 position){
             edit_val.p_val.p_uint16 = &config.params.skin;
         }
         break;
+    case PIN_CONFIG:
+        sprintf(string, "%s %d",selectedMenuItem->Text, config.params.data_pin_config);
+        if(navigation_style == MENU_NAVIGATION){
+            edit_val.type = VAL_UINT16;
+            edit_val.digit_max = 0;
+            edit_val.digit = 0;
+            edit_val.val_min.uint16 = 0;
+            edit_val.val_max.uint16 = 2;
+            edit_val.p_val.p_uint16 = &config.params.data_pin_config;
+        }
+        break;
     case TIME_HOUR:
         sprintf(string, "%s %02d",selectedMenuItem->Text, dcts.dcts_rtc.hour);
         if(navigation_style == MENU_NAVIGATION){
@@ -593,6 +623,8 @@ static void print_value(u8 position){
         //osDelay(2000);
         menuChange(selectedMenuItem->Parent);
         break;
+    default:
+        sprintf(string, "not found");
     }
 
     if(navigation_style == DIGIT_POSITION){
@@ -630,32 +662,62 @@ static void print_value(u8 position){
 void am2302_task (void const * argument){
     (void)argument;
     am2302_init();
+    am2302_data_t data_pin;
+    uint8_t data_pin_lost_con_cnt = 0;
+    uint32_t data_pin_recieved = 0;
+    uint32_t data_pin_lost = 0;
     data_pin_irq_init();
     am2302_data_t data = {0};
     refresh_watchdog();
     osDelay(1000);
     refresh_watchdog();
+    uint32_t last_wake_time = osKernelSysTick();
     while(1){
         refresh_watchdog();
-        switch (irq_state) {
-        case IRQ_SEND_TMPR:
-            data.tmpr = (int16_t)(dcts_meas[TMPR].value * 10.0f);
-            data.hum = 0;
-            am2302_send(data, 0);
-            data_pin_irq_init();
-            break;
-        case IRQ_READ_RTC:
-            data = am2302_get_rtc(0);
-            if(data.error != 1){
-                dcts.dcts_rtc.hour = (uint8_t)((data.hum & 0xFF00) >> 8);
-                dcts.dcts_rtc.minute = (uint8_t)(data.hum & 0xFF);
-                dcts.dcts_rtc.second = (uint8_t)((data.tmpr & 0xFF00) >> 8);
-                RTC_set(dcts.dcts_rtc);
+        switch (config.params.data_pin_config){
+        case DATA_PIN_EXT_AM2302:
+            data_pin = am2302_get(0);
+            taskENTER_CRITICAL();
+            if(data_pin.error == 1){
+                data_pin_lost++;
+                data_pin_lost_con_cnt++;
+                if(data_pin_lost_con_cnt > 2){
+                    dcts_meas[AM2302_H].valid = FALSE;
+                    dcts_meas[AM2302_T].valid = FALSE;
+                }
+            }else{
+                data_pin_recieved++;
+                data_pin_lost_con_cnt = 0;
+                dcts_meas[AM2302_H].value = (float)data_pin.hum/10;
+                dcts_meas[AM2302_H].valid = TRUE;
+                dcts_meas[AM2302_T].value = (float)data_pin.tmpr/10;
+                dcts_meas[AM2302_T].valid = TRUE;
             }
-            data_pin_irq_init();
+            taskEXIT_CRITICAL();
+            osDelayUntil(&last_wake_time, 3000);
             break;
-        default:
-            taskYIELD();
+        case DATA_PIN_CLONE_AM2302:
+            switch (irq_state) {
+            case IRQ_SEND_TMPR:
+                data.tmpr = (int16_t)(dcts_meas[TMPR].value * 10.0f);
+                data.hum = 0;
+                am2302_send(data, 0);
+                data_pin_irq_init();
+                break;
+            case IRQ_READ_RTC:
+                data = am2302_get_rtc(0);
+                if(data.error != 1){
+                    dcts.dcts_rtc.hour = (uint8_t)((data.hum & 0xFF00) >> 8);
+                    dcts.dcts_rtc.minute = (uint8_t)(data.hum & 0xFF);
+                    dcts.dcts_rtc.second = (uint8_t)((data.tmpr & 0xFF00) >> 8);
+                    RTC_set(dcts.dcts_rtc);
+                }
+                data_pin_irq_init();
+                break;
+            default:
+                taskYIELD();
+            }
+            break;
         }
     }
 }

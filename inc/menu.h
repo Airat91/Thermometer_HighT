@@ -47,6 +47,8 @@ typedef enum {
     DISPLAY,
     LIGHT_LVL,
     SKIN,
+    AM2302_PIN,
+    PIN_CONFIG,
     SAVE_CHANGES,
     SAVING,
     TIME,

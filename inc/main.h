@@ -137,13 +137,19 @@ typedef struct{
     edit_val_type type;
 }edit_val_t;
 
+typedef enum{
+    DATA_PIN_DISABLE = 0,
+    DATA_PIN_EXT_AM2302,
+    DATA_PIN_CLONE_AM2302,
+}data_pin_t;
+
 typedef union{
     struct{
         uint16_t mdb_address;
         uint16_t mdb_bitrate;
         uint16_t light_lvl;
         uint16_t skin;
-        uint16_t extern_m2302_enable;
+        uint16_t data_pin_config;
     }params;
     uint16_t word[SAVED_PARAMS_SIZE];
 }saved_to_flash_t;

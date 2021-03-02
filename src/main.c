@@ -391,7 +391,7 @@ void display_task(void const * argument){
 static void print_main(void){
     static u8 tick = 0;
     char string[50] = {0};
-    switch (skin){
+    switch (config.params.skin){
     case HIGH_T_AND_TIME:
         if(tick < SHOW_TIME*1000/display_task_period){
             sprintf(string, "%02d-%02d-%02d", dcts.dcts_rtc.hour, dcts.dcts_rtc.minute, dcts.dcts_rtc.second);
@@ -1047,7 +1047,7 @@ static void restore_params(void){
         //config.params.mdb_bitrate = BITRATE_56000;
         config.params.light_lvl = 20;
         config.params.skin = HIGH_T_AND_TIME;
-        config.params.extern_m2302_enable = FALSE;
+        config.params.data_pin_config = DATA_PIN_DISABLE;
     }
     /*for(bitrate_array_pointer = 0; bitrate_array_pointer < 14; bitrate_array_pointer++){
         if(bitrate_array[bitrate_array_pointer] == config.params.mdb_bitrate){

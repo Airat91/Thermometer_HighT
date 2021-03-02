@@ -54,9 +54,11 @@ MAKE_MENU       (main_menu,     main_page,      main_page,      main_page,     c
     MAKE_MENU   (parity_err,    frame_err,      overrun_err,    connection,     NULL_ENTRY,     0,          MDB_PARITY_ERR,     "paritet_err");
     MAKE_MENU   (frame_err,     noise_err,      parity_err,     connection,     NULL_ENTRY,     0,          MDB_FRAME_ERR,      "frame_err");
     MAKE_MENU   (noise_err,     mdb_addr,       frame_err,      connection,     NULL_ENTRY,     0,          MDB_NOISE_ERR,      "noise_err");
-  MAKE_MENU     (display,       time,           connection,     main_menu,      light_lvl,      1,          DISPLAY,            "DISPLAY");
+  MAKE_MENU     (display,       data_pin,       connection,     main_menu,      light_lvl,      2,          DISPLAY,            "DISPLAY");
     MAKE_MENU   (light_lvl,     skin_select,    skin_select,    display,        EDITED_VAL,     0,          LIGHT_LVL,          "Light");
     MAKE_MENU   (skin_select,   light_lvl,      light_lvl,      display,        EDITED_VAL,     0,          SKIN,               "Skin");
+  MAKE_MENU     (data_pin,      time,           display,        main_menu,      pin_config,     1,          AM2302_PIN,              "DATA_PIN");
+    MAKE_MENU   (pin_config,    NULL_ENTRY,     NULL_ENTRY,     data_pin,       EDITED_VAL,     0,          PIN_CONFIG,         "Config");
   MAKE_MENU     (time,          date,           display,        main_menu,      time_hour,      3,          TIME,               "SET TIME");
     MAKE_MENU   (time_hour,     time_min,       time_sec,       time,           EDITED_VAL,     0,          TIME_HOUR,          "hour");
     MAKE_MENU   (time_min,      time_sec,       time_hour,      time,           EDITED_VAL,     0,          TIME_MIN,           "minute");
@@ -72,7 +74,6 @@ MAKE_MENU       (main_menu,     main_page,      main_page,      main_page,     c
 /*========== FUNCTIONS ==========*/
 
 void menu_init (void){
-
     selectedMenuItem = &main_page;
 }
 

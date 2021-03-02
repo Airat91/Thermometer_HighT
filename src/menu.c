@@ -57,7 +57,7 @@ MAKE_MENU       (main_menu,     main_page,      main_page,      main_page,     c
   MAKE_MENU     (display,       data_pin,       connection,     main_menu,      light_lvl,      2,          DISPLAY,            "DISPLAY");
     MAKE_MENU   (light_lvl,     skin_select,    skin_select,    display,        EDITED_VAL,     0,          LIGHT_LVL,          "Light");
     MAKE_MENU   (skin_select,   light_lvl,      light_lvl,      display,        EDITED_VAL,     0,          SKIN,               "Skin");
-  MAKE_MENU     (data_pin,      time,           display,        main_menu,      pin_config,     1,          AM2302_PIN,              "DATA_PIN");
+  MAKE_MENU     (data_pin,      time,           display,        main_menu,      pin_config,     1,          AM2302_PIN,         "DATA_PIN");
     MAKE_MENU   (pin_config,    NULL_ENTRY,     NULL_ENTRY,     data_pin,       EDITED_VAL,     0,          PIN_CONFIG,         "Config");
   MAKE_MENU     (time,          date,           display,        main_menu,      time_hour,      3,          TIME,               "SET TIME");
     MAKE_MENU   (time_hour,     time_min,       time_sec,       time,           EDITED_VAL,     0,          TIME_HOUR,          "hour");
@@ -67,8 +67,8 @@ MAKE_MENU       (main_menu,     main_page,      main_page,      main_page,     c
     MAKE_MENU   (date_day,      date_month,     date_year,      date,           EDITED_VAL,     0,          DATE_DAY,           "day");
     MAKE_MENU   (date_month,    date_year,      date_day,       date,           EDITED_VAL,     0,          DATE_MONTH,         "month");
     MAKE_MENU   (date_year,     date_day,       date_month,     date,           EDITED_VAL,     0,          DATE_YEAR,          "year");
-  MAKE_MENU     (save_changes,  common_info,    date,           main_menu,      saving,         1,          SAVE_CHANGES,       "SAVE CONFIGURATION");
-    MAKE_MENU   (saving,        NULL_ENTRY,     NULL_ENTRY,     save_changes,   EDITED_VAL,     0,          SAVING,             "Saving");
+  MAKE_MENU     (save_changes,  common_info,    date,           main_menu,      saving,         1,          SAVE_CHANGES,       "SAUE");
+    MAKE_MENU   (saving,        NULL_ENTRY,     NULL_ENTRY,     save_changes,   EDITED_VAL,     0,          SAVING,             "Sauing");
 
 
 /*========== FUNCTIONS ==========*/

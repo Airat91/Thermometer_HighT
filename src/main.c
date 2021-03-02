@@ -313,23 +313,42 @@ void rtc_task(void const * argument){
     RTC_Init();
     uint32_t last_wake_time = osKernelSysTick();
     while(1){
-        refresh_watchdog();
-        HAL_GPIO_TogglePin(LED_PORT,LED_PIN);
-        HAL_RTC_GetDate(&hrtc,&date,RTC_FORMAT_BIN);
-        HAL_RTC_GetTime(&hrtc,&time,RTC_FORMAT_BIN);
+        switch (dcts.dcts_rtc.state) {
+        case RTC_STATE_READY:   //update dcts_rtc from rtc
+            HAL_RTC_GetDate(&hrtc,&date,RTC_FORMAT_BIN);
+            HAL_RTC_GetTime(&hrtc,&time,RTC_FORMAT_BIN);
 
-        taskENTER_CRITICAL();
-        dcts.dcts_rtc.hour = time.Hours;
-        dcts.dcts_rtc.minute = time.Minutes;
-        dcts.dcts_rtc.second = time.Seconds;
+            taskENTER_CRITICAL();
+            dcts.dcts_rtc.hour = time.Hours;
+            dcts.dcts_rtc.minute = time.Minutes;
+            dcts.dcts_rtc.second = time.Seconds;
 
-        dcts.dcts_rtc.day = date.Date;
-        dcts.dcts_rtc.month = date.Month;
-        dcts.dcts_rtc.year = date.Year + 2000;
-        dcts.dcts_rtc.weekday = date.WeekDay;
-        taskEXIT_CRITICAL();
+            dcts.dcts_rtc.day = date.Date;
+            dcts.dcts_rtc.month = date.Month;
+            dcts.dcts_rtc.year = date.Year + 2000;
+            dcts.dcts_rtc.weekday = date.WeekDay;
+            taskEXIT_CRITICAL();
+            break;
+        case RTC_STATE_SET:     //set new values from dcts_rtc
+            time.Hours = dcts.dcts_rtc.hour;
+            time.Minutes = dcts.dcts_rtc.minute;
+            time.Seconds = dcts.dcts_rtc.second;
 
+            date.Date = dcts.dcts_rtc.day;
+            date.Month = dcts.dcts_rtc.month;
+            date.Year = (uint8_t)(dcts.dcts_rtc.year - 2000);
+
+            HAL_RTC_SetTime(&hrtc, &time, RTC_FORMAT_BIN);
+            HAL_RTC_SetDate(&hrtc, &date, RTC_FORMAT_BIN);
+
+            dcts.dcts_rtc.state = RTC_STATE_READY;
+            break;
+        default:
+            break;
+        }
+#if RELEASE
         HAL_IWDG_Refresh(&hiwdg);
+#endif //RELEASE
         osDelayUntil(&last_wake_time, RTC_TASK_PERIOD);
     }
 }
@@ -652,6 +671,9 @@ void navigation_task (void const * argument){
     while(1){
         switch (navigation_style){
         case MENU_NAVIGATION:
+            if(dcts.dcts_rtc.state == RTC_STATE_EDIT){
+                dcts.dcts_rtc.state = RTC_STATE_SET;
+            }
             if(button_click(BUTTON_OK,BUTTON_CLICK_TIME)){
                 // go to next element
                 menuChange(selectedMenuItem->Next);
@@ -721,6 +743,16 @@ void navigation_task (void const * argument){
 
             break;
         case DIGIT_EDIT:
+            switch (selectedMenuItem->Page){
+            case TIME_HOUR:
+            case TIME_MIN:
+            case TIME_SEC:
+            case DATE_DAY:
+            case DATE_MONTH:
+            case DATE_YEAR:
+                dcts.dcts_rtc.state = RTC_STATE_EDIT;
+                break;
+            }
             if(button_click(BUTTON_OK,BUTTON_CLICK_TIME)){
                 // increment value
                 switch(edit_val.type){
@@ -997,10 +1029,6 @@ void _Error_Handler(char *file, int line)
 }
 
 static void save_params(void){
-    /*static menuItem* current_menu;
-    current_menu = selectedMenuItem;
-    menuChange(&save_changes);*/
-
     int area_cnt = find_free_area();
     if(area_cnt < 0){
         uint32_t erase_error = 0;
@@ -1022,7 +1050,6 @@ static void save_params(void){
     //uart_init(config.params.mdb_bitrate, 8, 1, PARITY_NONE, 10000, UART_CONN_LOST_TIMEOUT);
     //delay for show message
     osDelay(2000);
-    //menuChange(current_menu);
 }
 
 static void restore_params(void){

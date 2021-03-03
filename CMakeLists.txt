@@ -102,7 +102,7 @@ set(MAP_FILE ${PROJECT_SOURCE_DIR}/build/output.map)
 set_target_properties(${BUILD_TARGET} PROPERTIES LINK_FLAGS
     "-mcpu=${MCU_ARCH}\
     -mthumb\
-    -O0\
+    -O2\
     -specs=nosys.specs\
     -Wl,-gc-sections -T${PROJECT_SOURCE_DIR}/${MCU_LINKER_SCRIPT}\
     -Wl,-Map,${MAP_FILE}")

@@ -183,6 +183,7 @@ void display_task(void const * argument);
 void am2302_task(void const * argument);
 void rtc_task(void const * argument);
 void navigation_task(void const * argument);
+void uart_task(void const * argument);
 void refresh_watchdog(void);
 uint32_t uint32_pow(uint16_t x, uint8_t pow);
 u16 str_smb_num(char* string, char symbol);

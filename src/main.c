@@ -63,13 +63,15 @@
 #include "buttons.h"
 #include "menu.h"
 #include "flash.h"
+#include "uart.h"
+#include "modbus.h"
 #include <string.h>
 
 /**
   * @defgroup MAIN
   */
 
-#define RELEASE 0
+#define RELEASE 1
 #define RESET_HOLD 3000
 
 typedef enum{
@@ -89,6 +91,7 @@ osThreadId adcTaskHandle;
 osThreadId am2302TaskHandle;
 osThreadId buttonsTaskHandle;
 osThreadId navigationTaskHandle;
+osThreadId uartTaskHandle;
 uint8_t irq_state = IRQ_NONE;
 
 
@@ -116,6 +119,24 @@ uint32_t us_cnt_H = 0;
 static edit_val_t edit_val = {0};
 static navigation_t navigation_style = MENU_NAVIGATION;
 saved_to_flash_t config;
+static const uart_bitrate_t bitrate_array[14] = {
+    BITRATE_600,
+    BITRATE_1200,
+    BITRATE_2400,
+    BITRATE_4800,
+    BITRATE_9600,
+    BITRATE_14400,
+    BITRATE_19200,
+    BITRATE_28800,
+    BITRATE_38400,
+    BITRATE_56000,
+    BITRATE_57600,
+    BITRATE_115200,
+    BITRATE_128000,
+    BITRATE_256000,
+};
+static uint16_t bitrate_array_pointer = 0;
+
 
 void dcts_init (void) {
     dcts.dcts_id = DCTS_ID_MEASURE;
@@ -183,6 +204,9 @@ int main(void){
 
     osThreadDef(navigation_task, navigation_task, osPriorityNormal, 0, configMINIMAL_STACK_SIZE);
     navigationTaskHandle = osThreadCreate(osThread(navigation_task), NULL);
+
+    /*osThreadDef(uart_task, uart_task, osPriorityHigh, 0, configMINIMAL_STACK_SIZE*2);
+    uartTaskHandle = osThreadCreate(osThread(uart_task), NULL);*/
 
     /* Start scheduler */
     osKernelStart();
@@ -962,6 +986,55 @@ void navigation_task (void const * argument){
     }
 }
 
+#define uart_task_period 5
+void uart_task(void const * argument){
+    (void)argument;
+    uart_init(config.params.mdb_bitrate, 8, 1, PARITY_NONE, 1000, UART_CONN_LOST_TIMEOUT);
+    uint16_t tick = 0;
+    char string[100];
+    uint32_t last_wake_time = osKernelSysTick();
+    while(1){
+        if((uart_2.state & UART_STATE_RECIEVE)&&\
+                ((uint16_t)(us_tim_get_value() - uart_2.timeout_last) > uart_2.timeout)){
+            memcpy(uart_2.buff_received, uart_2.buff_in, uart_2.in_ptr);
+            uart_2.received_len = uart_2.in_ptr;
+            uart_2.in_ptr = 0;
+            uart_2.state &= ~UART_STATE_RECIEVE;
+            uart_2.state &= ~UART_STATE_ERROR;
+            uart_2.state |= UART_STATE_IN_HANDING;
+            uart_2.conn_last = 0;
+            uart_2.recieved_cnt ++;
+
+            if(modbus_packet_for_me(uart_2.buff_received, uart_2.received_len)){
+                memcpy(uart_2.buff_out, uart_2.buff_received, uart_2.received_len);
+                uint16_t new_len = modbus_rtu_packet(uart_2.buff_out, uart_2.received_len);
+                uart_send(uart_2.buff_out, new_len);
+            }
+            uart_2.state &= ~UART_STATE_IN_HANDING;
+        }
+        if(uart_2.conn_last > uart_2.conn_lost_timeout){
+            uart_deinit();
+            uart_init(config.params.mdb_bitrate, 8, 1, PARITY_NONE, 1000, UART_CONN_LOST_TIMEOUT);
+        }
+        if(tick == 1000/uart_task_period){
+            tick = 0;
+            HAL_GPIO_TogglePin(LED_PORT,LED_PIN);
+            for(uint8_t i = 0; i < MEAS_NUM; i++){
+                sprintf(string, "%s:\t%.1f(%s)\n",dcts_meas[i].name,(double)dcts_meas[i].value,dcts_meas[i].unit);
+                if(i == MEAS_NUM - 1){
+                    strncat(string,"\n",1);
+                }
+                //uart_send(string,(uint16_t)strlen(string));
+            }
+        }else{
+            tick++;
+            uart_2.conn_last += uart_task_period;
+        }
+
+        osDelayUntil(&last_wake_time, uart_task_period);
+    }
+}
+
 static void data_pin_irq_init(void){
     irq_state = IRQ_NONE;
     GPIO_InitTypeDef GPIO_InitStruct = {0};
@@ -1144,17 +1217,17 @@ static void restore_params(void){
     }else{
         //init default values if saved params not found
         config.params.mdb_address = dcts.dcts_address;
-        //config.params.mdb_bitrate = BITRATE_56000;
+        config.params.mdb_bitrate = BITRATE_56000;
         config.params.light_lvl = 20;
         config.params.skin = HIGH_T_AND_TIME;
         config.params.data_pin_config = DATA_PIN_DISABLE;
         config.params.tmpr_correct = 0;
     }
-    /*for(bitrate_array_pointer = 0; bitrate_array_pointer < 14; bitrate_array_pointer++){
+    for(bitrate_array_pointer = 0; bitrate_array_pointer < 14; bitrate_array_pointer++){
         if(bitrate_array[bitrate_array_pointer] == config.params.mdb_bitrate){
             break;
         }
-    }*/
+    }
 }
 
 

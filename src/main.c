@@ -205,8 +205,8 @@ int main(void){
     osThreadDef(navigation_task, navigation_task, osPriorityNormal, 0, configMINIMAL_STACK_SIZE);
     navigationTaskHandle = osThreadCreate(osThread(navigation_task), NULL);
 
-    /*osThreadDef(uart_task, uart_task, osPriorityHigh, 0, configMINIMAL_STACK_SIZE*2);
-    uartTaskHandle = osThreadCreate(osThread(uart_task), NULL);*/
+    osThreadDef(uart_task, uart_task, osPriorityHigh, 0, configMINIMAL_STACK_SIZE*2);
+    uartTaskHandle = osThreadCreate(osThread(uart_task), NULL);
 
     /* Start scheduler */
     osKernelStart();
@@ -530,25 +530,33 @@ static void print_value(u8 position){
         }
         break;
     case MDB_BITRATE:
-        sprintf(string, "%s none",selectedMenuItem->Text);
+        sprintf(string, "%s %d",selectedMenuItem->Text, bitrate_array[bitrate_array_pointer]*100);
+        if(navigation_style == MENU_NAVIGATION){
+            edit_val.type = VAL_UINT16;
+            edit_val.digit_max = 0;
+            edit_val.digit = 0;
+            edit_val.val_min.uint16 = 0;
+            edit_val.val_max.uint16 = 13;
+            edit_val.p_val.p_uint16 = &bitrate_array_pointer;
+        }
         break;
     case MDB_RECIEVED_CNT:
-        sprintf(string, "%s none",selectedMenuItem->Text);
+        sprintf(string, "%s %d",selectedMenuItem->Text, uart_2.recieved_cnt);
         break;
     case MDB_SEND_CNT:
-        sprintf(string, "%s none",selectedMenuItem->Text);
+        sprintf(string, "%s %d",selectedMenuItem->Text, uart_2.send_cnt);
         break;
     case MDB_OVERRUN_ERR:
-        sprintf(string, "%s none",selectedMenuItem->Text);
+        sprintf(string, "%s %d",selectedMenuItem->Text, uart_2.overrun_err_cnt);
         break;
     case MDB_PARITY_ERR:
-        sprintf(string, "%s none",selectedMenuItem->Text);
+        sprintf(string, "%s %d",selectedMenuItem->Text, uart_2.parity_err_cnt);
         break;
     case MDB_FRAME_ERR:
-        sprintf(string, "%s none",selectedMenuItem->Text);
+        sprintf(string, "%s %d",selectedMenuItem->Text, uart_2.frame_err_cnt);
         break;
     case MDB_NOISE_ERR:
-        sprintf(string, "%s none",selectedMenuItem->Text);
+        sprintf(string, "%s %d",selectedMenuItem->Text, uart_2.noise_err_cnt);
         break;
     case LIGHT_LVL:
         sprintf(string, "%s %d",selectedMenuItem->Text, config.params.light_lvl);
@@ -1005,11 +1013,11 @@ void uart_task(void const * argument){
             uart_2.conn_last = 0;
             uart_2.recieved_cnt ++;
 
-            if(modbus_packet_for_me(uart_2.buff_received, uart_2.received_len)){
+            /*if(modbus_packet_for_me(uart_2.buff_received, uart_2.received_len)){
                 memcpy(uart_2.buff_out, uart_2.buff_received, uart_2.received_len);
                 uint16_t new_len = modbus_rtu_packet(uart_2.buff_out, uart_2.received_len);
                 uart_send(uart_2.buff_out, new_len);
-            }
+            }*/
             uart_2.state &= ~UART_STATE_IN_HANDING;
         }
         if(uart_2.conn_last > uart_2.conn_lost_timeout){
@@ -1018,7 +1026,7 @@ void uart_task(void const * argument){
         }
         if(tick == 1000/uart_task_period){
             tick = 0;
-            HAL_GPIO_TogglePin(LED_PORT,LED_PIN);
+            //HAL_GPIO_TogglePin(LED_PORT,LED_PIN);
             for(uint8_t i = 0; i < MEAS_NUM; i++){
                 sprintf(string, "%s:\t%.1f(%s)\n",dcts_meas[i].name,(double)dcts_meas[i].value,dcts_meas[i].unit);
                 if(i == MEAS_NUM - 1){
@@ -1192,8 +1200,8 @@ static void save_params(void){
     }
     // rewrite new params
     dcts.dcts_address = (uint8_t)config.params.mdb_address;
-    //uart_deinit();
-    //uart_init(config.params.mdb_bitrate, 8, 1, PARITY_NONE, 10000, UART_CONN_LOST_TIMEOUT);
+    uart_deinit();
+    uart_init(config.params.mdb_bitrate, 8, 1, PARITY_NONE, 10000, UART_CONN_LOST_TIMEOUT);
     //delay for show message
     osDelay(2000);
 }

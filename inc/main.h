@@ -59,7 +59,7 @@
 
 #define TIME_YIELD_THRESHOLD 100
 #define MEAS_NUM 6
-#define SAVED_PARAMS_SIZE 5
+#define SAVED_PARAMS_SIZE 6
 
 
 /* ########################## Assert Selection ############################## */

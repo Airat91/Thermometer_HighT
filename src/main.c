@@ -135,6 +135,14 @@ static const uart_bitrate_t bitrate_array[14] = {
     BITRATE_128000,
     BITRATE_256000,
 };
+static const char skin_description[SKIN_NMB][20] = {
+    "T TIME",
+    "HIGH_T",
+    "TIME",
+    "AM2302",
+    "T AM2302",
+    "T 2302 TIME",
+};
 static uint16_t bitrate_array_pointer = 0;
 
 
@@ -453,6 +461,7 @@ void display_task(void const * argument){
 static void print_main(void){
     static u8 tick = 0;
     char string[50] = {0};
+
     switch (config.params.skin){
     case HIGH_T_AND_TIME:
         if(tick < SHOW_TIME*1000/display_task_period){
@@ -465,10 +474,59 @@ static void print_main(void){
             }
         }
         break;
+    case HIGH_T_ONLY:
+        if(dcts_meas[TMPR].value > 100.0f){
+            sprintf(string, " %.1f *C", (double)dcts_meas[TMPR].value);
+        }else{
+            sprintf(string, "  %.1f *C", (double)dcts_meas[TMPR].value);
+        }
+        break;
+    case TIME_ONLY:
+        sprintf(string, "%02d-%02d-%02d", dcts.dcts_rtc.hour, dcts.dcts_rtc.minute, dcts.dcts_rtc.second);
+        break;
+    case AM2302_T_AND_H:
+        if(dcts_meas[AM2302_H].valid){
+            sprintf(string, "%.1f*C %fH", (double)dcts_meas[AM2302_T].value, (double)dcts_meas[AM2302_H].value);
+        }else{
+            sprintf(string, "not conn");
+        }
+        break;
+    case HIGH_T_AND_AM2302_T:
+        if(tick < SHOW_TIME*1000/display_task_period){
+            sprintf(string, "1 %.1f*C", (double)dcts_meas[TMPR].value);
+        }else if((tick >= SHOW_TIME*1000/display_task_period)&&(tick < SHOW_TIME*2*1000/display_task_period)){
+            if(dcts_meas[AM2302_H].valid){
+                sprintf(string, "2 %.1f*C", (double)dcts_meas[AM2302_T].value);
+            }else{
+                sprintf(string, "not conn");
+            }
+        }
+        break;
+    case HIGH_T_AND_AM2302_T_AND_TIME:
+        if(tick < SHOW_TIME*1000/display_task_period){
+            sprintf(string, "%02d-%02d-%02d", dcts.dcts_rtc.hour, dcts.dcts_rtc.minute, dcts.dcts_rtc.second);
+        }else if(tick < SHOW_TIME*2*1000/display_task_period){
+            sprintf(string, "1 %.1f*C", (double)dcts_meas[TMPR].value);
+        }else if((tick >= SHOW_TIME*2*1000/display_task_period)&&(tick < SHOW_TIME*3*1000/display_task_period)){
+            if(dcts_meas[AM2302_H].valid){
+                sprintf(string, "2 %.1f*C", (double)dcts_meas[AM2302_T].value);
+            }else{
+                sprintf(string, "not conn");
+            }
+        }
+        break;
     }
     tick++;
-    if(tick == SHOW_TIME*2*1000/display_task_period){
-        tick = 0;
+    switch (config.params.skin) {
+    case HIGH_T_AND_AM2302_T_AND_TIME:
+        if(tick == SHOW_TIME*3*1000/display_task_period){
+            tick = 0;
+        }
+        break;
+    default:
+        if(tick == SHOW_TIME*2*1000/display_task_period){
+            tick = 0;
+        }
     }
     max7219_print_string(string);
 }
@@ -572,13 +630,13 @@ static void print_value(u8 position){
         }
         break;
     case SKIN:
-        sprintf(string, "%s %d",selectedMenuItem->Text, config.params.skin);
+        sprintf(string, "%s %s",selectedMenuItem->Text, skin_description[config.params.skin]);
         if(navigation_style == MENU_NAVIGATION){
             edit_val.type = VAL_UINT16;
             edit_val.digit_max = 0;
             edit_val.digit = 0;
             edit_val.val_min.uint16 = 0;
-            edit_val.val_max.uint16 = 2;
+            edit_val.val_max.uint16 = SKIN_NMB-1;
             edit_val.p_val.p_uint16 = &config.params.skin;
         }
         break;

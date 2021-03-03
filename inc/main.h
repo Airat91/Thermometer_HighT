@@ -60,6 +60,7 @@
 #define TIME_YIELD_THRESHOLD 100
 #define MEAS_NUM 6
 #define SAVED_PARAMS_SIZE 6
+#define SKIN_NMB 6
 
 
 /* ########################## Assert Selection ############################## */
@@ -98,6 +99,9 @@ typedef enum{
     HIGH_T_AND_TIME = 0,
     HIGH_T_ONLY,
     TIME_ONLY,
+    AM2302_T_AND_H,
+    HIGH_T_AND_AM2302_T,
+    HIGH_T_AND_AM2302_T_AND_TIME,
 }skin_t;
 
 typedef enum{

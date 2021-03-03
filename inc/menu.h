@@ -35,6 +35,8 @@ typedef enum {
     MEAS_CH_3,
     MEAS_CH_4,
     MEAS_CH_5,
+    TMPR_CALIB,
+    TMPR_CORR,
     CONNECTION,
     MDB_ADDR,
     MDB_BITRATE,

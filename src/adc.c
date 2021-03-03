@@ -193,7 +193,7 @@ void adc_task(void const * argument){
 static float tmpr_calc(float vlt){
     float tmpr = 0.0f;
     float coef_a = 100.0f;
-    float coef_b = 0.0f;
+    float coef_b = (float)config.params.tmpr_correct;
     tmpr = vlt * coef_a + coef_b;
     return tmpr;
 }

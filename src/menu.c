@@ -38,14 +38,16 @@ MAKE_MENU       (main_menu,     main_page,      main_page,      main_page,     c
   MAKE_MENU     (common_info,   meas_channels,  save_changes,   main_menu,      dcts_ver,       2,          COMMON_INFO,        "INFO");
     MAKE_MENU   (dcts_ver,      v_pwr,          v_pwr,          common_info,    NULL_ENTRY,     0,          DCTS_VER,           "dcts");
     MAKE_MENU   (v_pwr,         dcts_ver,       dcts_ver,       common_info,    NULL_ENTRY,     0,          V_PWR,              "u_in");
-  MAKE_MENU     (meas_channels, connection,     common_info,    main_menu,      meas_ch_0,      6,          MEAS_CHANNELS,      "CHANNELS");
+  MAKE_MENU     (meas_channels, tmpr_calib,     common_info,    main_menu,      meas_ch_0,      6,          MEAS_CHANNELS,      "CHANNELS");
     MAKE_MENU   (meas_ch_0,     meas_ch_1,      meas_ch_5,      meas_channels,  NULL_ENTRY,     0,          MEAS_CH_0,          "tpr");
     MAKE_MENU   (meas_ch_1,     meas_ch_2,      meas_ch_0,      meas_channels,  NULL_ENTRY,     0,          MEAS_CH_1,          "tpr_adc");
     MAKE_MENU   (meas_ch_2,     meas_ch_3,      meas_ch_1,      meas_channels,  NULL_ENTRY,     0,          MEAS_CH_2,          "tpr_ult");
     MAKE_MENU   (meas_ch_3,     meas_ch_4,      meas_ch_2,      meas_channels,  NULL_ENTRY,     0,          MEAS_CH_3,          "ref_adc");
     MAKE_MENU   (meas_ch_4,     meas_ch_5,      meas_ch_3,      meas_channels,  NULL_ENTRY,     0,          MEAS_CH_4,          "data_t");
     MAKE_MENU   (meas_ch_5,     meas_ch_0,      meas_ch_4,      meas_channels,  NULL_ENTRY,     0,          MEAS_CH_5,          "data_h");
-  MAKE_MENU     (connection,    display,        meas_channels,  main_menu,      mdb_addr,       8,          CONNECTION,         "CONNECT");
+  MAKE_MENU     (tmpr_calib,    connection,     common_info,    main_menu,      tmpr_corr,      1,          TMPR_CALIB,         "T CALIB");
+    MAKE_MENU   (tmpr_corr,     NULL_ENTRY,     NULL_ENTRY,     tmpr_calib,     EDITED_VAL,     0,          TMPR_CORR,          "T corr");
+  MAKE_MENU     (connection,    display,        tmpr_calib,     main_menu,      mdb_addr,       8,          CONNECTION,         "CONNECT");
     MAKE_MENU   (mdb_addr,      bitrate,        noise_err,      connection,     EDITED_VAL,     0,          MDB_ADDR,           "Address");
     MAKE_MENU   (bitrate,       recieved_cnt,   mdb_addr,       connection,     EDITED_VAL,     0,          MDB_BITRATE,        "Bitrate");
     MAKE_MENU   (recieved_cnt,  send_cnt,       bitrate,        connection,     NULL_ENTRY,     0,          MDB_RECIEVED_CNT,   "recieue_cnt");

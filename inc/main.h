@@ -150,6 +150,7 @@ typedef union{
         uint16_t light_lvl;
         uint16_t skin;
         uint16_t data_pin_config;
+        int16_t tmpr_correct;
     }params;
     uint16_t word[SAVED_PARAMS_SIZE];
 }saved_to_flash_t;

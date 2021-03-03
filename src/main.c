@@ -483,6 +483,17 @@ static void print_value(u8 position){
     case MEAS_CH_5:
         sprintf(string, "%s %.2f",selectedMenuItem->Text, (double)dcts_meas[5].value);
         break;
+    case TMPR_CORR:
+        sprintf(string, "%s %d",selectedMenuItem->Text, config.params.tmpr_correct);
+        if(navigation_style == MENU_NAVIGATION){
+            edit_val.type = VAL_INT16;
+            edit_val.digit_max = 1;
+            edit_val.digit = 0;
+            edit_val.val_min.int16 = -20;
+            edit_val.val_max.int16 = 20;
+            edit_val.p_val.p_int16 = &config.params.tmpr_correct;
+        }
+        break;
     case MDB_ADDR:
         sprintf(string, "%s %d",selectedMenuItem->Text, config.params.mdb_address);
         if(navigation_style == MENU_NAVIGATION){
@@ -1137,6 +1148,7 @@ static void restore_params(void){
         config.params.light_lvl = 20;
         config.params.skin = HIGH_T_AND_TIME;
         config.params.data_pin_config = DATA_PIN_DISABLE;
+        config.params.tmpr_correct = 0;
     }
     /*for(bitrate_array_pointer = 0; bitrate_array_pointer < 14; bitrate_array_pointer++){
         if(bitrate_array[bitrate_array_pointer] == config.params.mdb_bitrate){

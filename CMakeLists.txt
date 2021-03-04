@@ -110,7 +110,7 @@ set_target_properties(${BUILD_TARGET} PROPERTIES LINK_FLAGS
 target_compile_options(${BUILD_TARGET} PUBLIC 
                              -mcpu=${MCU_ARCH}
                              -mthumb -mthumb-interwork
-                             -g -O0
+                             -g -O1
                              -ffunction-sections -fdata-sections -fno-common -fmessage-length=0)
 
 set(compile_options -mcpu=${MCU_ARCH}

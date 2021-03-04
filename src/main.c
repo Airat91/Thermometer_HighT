@@ -572,36 +572,42 @@ static void print_value(u8 position){
         sprintf(string, "%s %.2f",selectedMenuItem->Text, (double)dcts_meas[5].value);
         break;
     case TMPR_CORR:
-        sprintf(string, "%s %d",selectedMenuItem->Text, config.params.tmpr_correct);
         if(navigation_style == MENU_NAVIGATION){
+            sprintf(string, "%s %d",selectedMenuItem->Text, config.params.tmpr_correct);
             edit_val.type = VAL_INT16;
             edit_val.digit_max = 1;
             edit_val.digit = 0;
             edit_val.val_min.int16 = -20;
             edit_val.val_max.int16 = 20;
             edit_val.p_val.p_int16 = &config.params.tmpr_correct;
+        }else{
+            sprintf(string, "       %d",config.params.tmpr_correct);
         }
         break;
     case MDB_ADDR:
-        sprintf(string, "%s %d",selectedMenuItem->Text, config.params.mdb_address);
         if(navigation_style == MENU_NAVIGATION){
+            sprintf(string, "%s %d",selectedMenuItem->Text, config.params.mdb_address);
             edit_val.type = VAL_UINT16;
             edit_val.digit_max = 1;
             edit_val.digit = 0;
             edit_val.val_min.uint16 = 0;
             edit_val.val_max.uint16 = 99;
             edit_val.p_val.p_uint16 = &config.params.mdb_address;
+        }else{
+            sprintf(string, "       %d",config.params.mdb_address);
         }
         break;
     case MDB_BITRATE:
-        sprintf(string, "%s %d",selectedMenuItem->Text, bitrate_array[bitrate_array_pointer]*100);
         if(navigation_style == MENU_NAVIGATION){
+            sprintf(string, "%s %d",selectedMenuItem->Text, bitrate_array[bitrate_array_pointer]*100);
             edit_val.type = VAL_UINT16;
             edit_val.digit_max = 0;
             edit_val.digit = 0;
             edit_val.val_min.uint16 = 0;
             edit_val.val_max.uint16 = 13;
             edit_val.p_val.p_uint16 = &bitrate_array_pointer;
+        }else{
+            sprintf(string, "       %d",bitrate_array[bitrate_array_pointer]*100);
         }
         config.params.mdb_bitrate = (uint16_t)bitrate_array[bitrate_array_pointer];
         break;
@@ -624,104 +630,123 @@ static void print_value(u8 position){
         sprintf(string, "%s %d",selectedMenuItem->Text, uart_2.noise_err_cnt);
         break;
     case LIGHT_LVL:
-        sprintf(string, "%s %d",selectedMenuItem->Text, config.params.light_lvl);
         if(navigation_style == MENU_NAVIGATION){
+            sprintf(string, "%s %d",selectedMenuItem->Text, config.params.light_lvl);
             edit_val.type = VAL_UINT16;
             edit_val.digit_max = 2;
             edit_val.digit = 1;
             edit_val.val_min.uint16 = 10;
             edit_val.val_max.uint16 = 100;
             edit_val.p_val.p_uint16 = &config.params.light_lvl;
-        }else if(navigation_style == DIGIT_EDIT){
-            max7219_send(0x0A,(u8)(config.params.light_lvl/10));
+        }else{
+            sprintf(string, "       %d",config.params.light_lvl);
+            if(navigation_style == DIGIT_EDIT){
+                max7219_send(0x0A,(u8)(config.params.light_lvl/10));
+            }
         }
         break;
     case SKIN:
-        sprintf(string, "%s %s",selectedMenuItem->Text, skin_description[config.params.skin]);
         if(navigation_style == MENU_NAVIGATION){
+            sprintf(string, "%s %s",selectedMenuItem->Text, skin_description[config.params.skin]);
             edit_val.type = VAL_UINT16;
             edit_val.digit_max = 0;
             edit_val.digit = 0;
             edit_val.val_min.uint16 = 0;
             edit_val.val_max.uint16 = SKIN_NMB-1;
             edit_val.p_val.p_uint16 = &config.params.skin;
+        }else{
+            sprintf(string, "       %s",skin_description[config.params.skin]);
         }
         break;
     case PIN_CONFIG:
-        sprintf(string, "%s %s",selectedMenuItem->Text, data_pin_description[config.params.data_pin_config]);
         if(navigation_style == MENU_NAVIGATION){
+            sprintf(string, "%s %s",selectedMenuItem->Text, data_pin_description[config.params.data_pin_config]);
             edit_val.type = VAL_UINT16;
             edit_val.digit_max = 0;
             edit_val.digit = 0;
             edit_val.val_min.uint16 = 0;
             edit_val.val_max.uint16 = 2;
             edit_val.p_val.p_uint16 = &config.params.data_pin_config;
+        }else{
+            sprintf(string, "       %s",data_pin_description[config.params.data_pin_config]);
         }
         break;
     case TIME_HOUR:
-        sprintf(string, "%s %02d",selectedMenuItem->Text, dcts.dcts_rtc.hour);
         if(navigation_style == MENU_NAVIGATION){
+            sprintf(string, "%s  %02d",selectedMenuItem->Text, dcts.dcts_rtc.hour);
             edit_val.type = VAL_UINT8;
             edit_val.digit_max = 1;
             edit_val.digit = 0;
             edit_val.val_min.uint8 = 0;
             edit_val.val_max.uint8 = 23;
             edit_val.p_val.p_uint8 = &dcts.dcts_rtc.hour;
+        }else{
+            sprintf(string, "      %02d",dcts.dcts_rtc.hour);
         }
         break;
     case TIME_MIN:
-        sprintf(string, "%s %02d",selectedMenuItem->Text, dcts.dcts_rtc.minute);
         if(navigation_style == MENU_NAVIGATION){
+            sprintf(string, "%s %02d",selectedMenuItem->Text, dcts.dcts_rtc.minute);
             edit_val.type = VAL_UINT8;
             edit_val.digit_max = 1;
             edit_val.digit = 0;
             edit_val.val_min.uint8 = 0;
             edit_val.val_max.uint8 = 59;
             edit_val.p_val.p_uint8 = &dcts.dcts_rtc.minute;
+        }else{
+            sprintf(string, "      %02d",dcts.dcts_rtc.minute);
         }
         break;
     case TIME_SEC:
-        sprintf(string, "%s %02d",selectedMenuItem->Text, dcts.dcts_rtc.second);
         if(navigation_style == MENU_NAVIGATION){
+            sprintf(string, "%s %02d",selectedMenuItem->Text, dcts.dcts_rtc.second);
             edit_val.type = VAL_UINT8;
             edit_val.digit_max = 1;
             edit_val.digit = 0;
             edit_val.val_min.uint8 = 0;
             edit_val.val_max.uint8 = 59;
             edit_val.p_val.p_uint8 = &dcts.dcts_rtc.second;
+        }else{
+            sprintf(string, "      %02d",dcts.dcts_rtc.second);
         }
         break;
     case DATE_DAY:
-        sprintf(string, "%s %02d",selectedMenuItem->Text, dcts.dcts_rtc.day);
         if(navigation_style == MENU_NAVIGATION){
+            sprintf(string, "%s   %02d",selectedMenuItem->Text, dcts.dcts_rtc.day);
             edit_val.type = VAL_UINT8;
             edit_val.digit_max = 1;
             edit_val.digit = 0;
             edit_val.val_min.uint8 = 1;
             edit_val.val_max.uint8 = 31;
             edit_val.p_val.p_uint8 = &dcts.dcts_rtc.day;
+        }else{
+            sprintf(string, "      %02d",dcts.dcts_rtc.day);
         }
         break;
     case DATE_MONTH:
-        sprintf(string, "%s %02d",selectedMenuItem->Text, dcts.dcts_rtc.month);
         if(navigation_style == MENU_NAVIGATION){
+            sprintf(string, "%s %02d",selectedMenuItem->Text, dcts.dcts_rtc.month);
             edit_val.type = VAL_UINT8;
             edit_val.digit_max = 1;
             edit_val.digit = 0;
             edit_val.val_min.uint8 = 1;
             edit_val.val_max.uint8 = 12;
             edit_val.p_val.p_uint8 = &dcts.dcts_rtc.month;
+        }else{
+            sprintf(string, "      %02d",dcts.dcts_rtc.month);
         }
         break;
     case DATE_YEAR:
-        sprintf(string, "%s %d",selectedMenuItem->Text, dcts.dcts_rtc.year);
         if(navigation_style == MENU_NAVIGATION){
+            sprintf(string, "%s %d",selectedMenuItem->Text, dcts.dcts_rtc.year);
             edit_val.type = VAL_UINT16;
             edit_val.digit_max = 3;
             edit_val.digit = 0;
             edit_val.val_min.uint16 = 2000;
             edit_val.val_max.uint16 = 5000;
             edit_val.p_val.p_uint16 = &dcts.dcts_rtc.year;
+        }else{
+            sprintf(string, "    %d",dcts.dcts_rtc.year);
         }
         break;
     case SAVING:

@@ -135,6 +135,7 @@ static const uart_bitrate_t bitrate_array[14] = {
     BITRATE_128000,
     BITRATE_256000,
 };
+static uint16_t bitrate_array_pointer = 0;
 static const char skin_description[SKIN_NMB][20] = {
     "T TIME",
     "HIGH_T",
@@ -143,8 +144,11 @@ static const char skin_description[SKIN_NMB][20] = {
     "T AM2302",
     "T 2302 TIME",
 };
-static uint16_t bitrate_array_pointer = 0;
-
+static const char data_pin_description[3][20] = {
+    "disable",
+    "AM2302",
+    "cloning",
+};
 
 void dcts_init (void) {
     dcts.dcts_id = DCTS_ID_MEASURE;
@@ -311,7 +315,11 @@ static void RTC_Init(void){
     HAL_RTC_SetDate(&hrtc, &sDate, RTC_FORMAT_BIN);
 }
 
-
+/**
+ * @brief RTC_set
+ * @param dcts_rtc
+ * @return
+ */
 int RTC_set(rtc_t dcts_rtc){
     int result = 0;
     RTC_TimeTypeDef sTime = {0};
@@ -641,7 +649,7 @@ static void print_value(u8 position){
         }
         break;
     case PIN_CONFIG:
-        sprintf(string, "%s %d",selectedMenuItem->Text, config.params.data_pin_config);
+        sprintf(string, "%s %s",selectedMenuItem->Text, data_pin_description[config.params.data_pin_config]);
         if(navigation_style == MENU_NAVIGATION){
             edit_val.type = VAL_UINT16;
             edit_val.digit_max = 0;
@@ -1071,11 +1079,11 @@ void uart_task(void const * argument){
             uart_2.conn_last = 0;
             uart_2.recieved_cnt ++;
 
-            /*if(modbus_packet_for_me(uart_2.buff_received, uart_2.received_len)){
+            if(modbus_packet_for_me(uart_2.buff_received, uart_2.received_len)){
                 memcpy(uart_2.buff_out, uart_2.buff_received, uart_2.received_len);
                 uint16_t new_len = modbus_rtu_packet(uart_2.buff_out, uart_2.received_len);
                 uart_send(uart_2.buff_out, new_len);
-            }*/
+            }
             uart_2.state &= ~UART_STATE_IN_HANDING;
         }
         if(uart_2.conn_last > uart_2.conn_lost_timeout){

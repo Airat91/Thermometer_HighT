@@ -196,13 +196,11 @@ int main(void){
 #if RELEASE
     MX_IWDG_Init();
 #endif //RELEASE
-    /*
-    MX_RTC_Init();
-    */
-    osThreadDef(rtc_task, rtc_task, osPriorityNormal, 0, configMINIMAL_STACK_SIZE*4);
+
+    osThreadDef(rtc_task, rtc_task, osPriorityNormal, 0, configMINIMAL_STACK_SIZE);
     defaultTaskHandle = osThreadCreate(osThread(rtc_task), NULL);
 
-    osThreadDef(display_task, display_task, osPriorityNormal, 0, configMINIMAL_STACK_SIZE*4);
+    osThreadDef(display_task, display_task, osPriorityNormal, 0, configMINIMAL_STACK_SIZE*2);
     displayTaskHandle = osThreadCreate(osThread(display_task), NULL);
 
     osThreadDef(adc_task, adc_task, osPriorityNormal, 0, configMINIMAL_STACK_SIZE*2);
@@ -217,7 +215,7 @@ int main(void){
     osThreadDef(navigation_task, navigation_task, osPriorityNormal, 0, configMINIMAL_STACK_SIZE);
     navigationTaskHandle = osThreadCreate(osThread(navigation_task), NULL);
 
-    osThreadDef(uart_task, uart_task, osPriorityHigh, 0, configMINIMAL_STACK_SIZE*2);
+    osThreadDef(uart_task, uart_task, osPriorityHigh, 0, configMINIMAL_STACK_SIZE*4);
     uartTaskHandle = osThreadCreate(osThread(uart_task), NULL);
 
     /* Start scheduler */
@@ -605,6 +603,7 @@ static void print_value(u8 position){
             edit_val.val_max.uint16 = 13;
             edit_val.p_val.p_uint16 = &bitrate_array_pointer;
         }
+        config.params.mdb_bitrate = (uint16_t)bitrate_array[bitrate_array_pointer];
         break;
     case MDB_RECIEVED_CNT:
         sprintf(string, "%s %d",selectedMenuItem->Text, uart_2.recieved_cnt);
@@ -1092,7 +1091,7 @@ void uart_task(void const * argument){
         }
         if(tick == 1000/uart_task_period){
             tick = 0;
-            //HAL_GPIO_TogglePin(LED_PORT,LED_PIN);
+            HAL_GPIO_TogglePin(LED_PORT,LED_PIN);
             for(uint8_t i = 0; i < MEAS_NUM; i++){
                 sprintf(string, "%s:\t%.1f(%s)\n",dcts_meas[i].name,(double)dcts_meas[i].value,dcts_meas[i].unit);
                 if(i == MEAS_NUM - 1){
@@ -1291,7 +1290,7 @@ static void restore_params(void){
     }else{
         //init default values if saved params not found
         config.params.mdb_address = dcts.dcts_address;
-        config.params.mdb_bitrate = BITRATE_56000;
+        config.params.mdb_bitrate = BITRATE_115200;
         config.params.light_lvl = 20;
         config.params.skin = HIGH_T_AND_TIME;
         config.params.data_pin_config = DATA_PIN_DISABLE;

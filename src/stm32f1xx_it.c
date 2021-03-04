@@ -38,6 +38,7 @@
 #include "dcts.h"
 #include "pin_map.h"
 #include "main.h"
+#include "uart.h"
 
 /* USER CODE BEGIN 0 */
 
@@ -244,6 +245,22 @@ extern TIM_HandleTypeDef htim2;
 void TIM2_IRQHandler(void){
   HAL_TIM_IRQHandler(&htim2);
   us_cnt_H += 0x10000;
+}
+
+/**
+* @brief This function handles USART1 global interrupt.
+*/
+void USART2_IRQHandler(void)
+{
+  /* USER CODE BEGIN USART1_IRQn 0 */
+
+  /* USER CODE END USART1_IRQn 0 */
+  HAL_UART_IRQHandler(&huart2);
+  /* USER CODE BEGIN USART1_IRQn 1 */
+
+  uart_handle();
+
+  /* USER CODE END USART1_IRQn 1 */
 }
 
 /* USER CODE BEGIN 1 */

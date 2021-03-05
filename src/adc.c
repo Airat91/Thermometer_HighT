@@ -23,7 +23,7 @@ static float tmpr_calc(float adc);
 //#define ADC_VREF 3.3f
 //#define ADC_VREFINT 1.2f
 
-#define PWR_K   2.187f
+#define PWR_K   11.0f
 #define VREF_INT 1.2f
 
 /*========== FUNCTIONS ==========*/

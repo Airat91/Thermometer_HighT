@@ -59,7 +59,7 @@
 
 #define TIME_YIELD_THRESHOLD 100
 #define MEAS_NUM 6
-#define SAVED_PARAMS_SIZE 6
+#define SAVED_PARAMS_SIZE 7
 #define SKIN_NMB 6
 
 
@@ -154,7 +154,8 @@ typedef union{
         uint16_t light_lvl;
         uint16_t skin;
         uint16_t data_pin_config;
-        int16_t tmpr_correct;
+        uint16_t tmpr_coef_a;
+        int16_t tmpr_coef_b;
     }params;
     uint16_t word[SAVED_PARAMS_SIZE];
 }saved_to_flash_t;

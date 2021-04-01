@@ -174,7 +174,10 @@ am2302_data_t am2302_get (uint8_t channel) {
         }
         if(paritet == read_data[4]){
             result.hum = read_data[0]*256 + read_data[1];
-            result.tmpr = read_data[2]*256 + read_data[3];
+            result.tmpr = (read_data[2]*256 + read_data[3])&0x7FFF;
+            if(read_data[2]&0x80){
+                result.tmpr *= -1;
+            }
             result.paritet = read_data[4];
         }else{
             result.error = 1;

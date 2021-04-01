@@ -1,5 +1,5 @@
 // Library for AM2302
-// Ver_2.1
+// Ver_2.2
 
 /*========== LIBRARY DESCRIPTION ==========
 - Library use STM32F3xx_HAL_Driver 

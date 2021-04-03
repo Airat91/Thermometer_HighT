@@ -65,6 +65,7 @@
 #include "flash.h"
 #include "uart.h"
 #include "modbus.h"
+#include "st7735.h"
 #include <string.h>
 
 /**
@@ -203,7 +204,7 @@ int main(void){
     osThreadDef(display_task, display_task, osPriorityNormal, 0, configMINIMAL_STACK_SIZE*2);
     displayTaskHandle = osThreadCreate(osThread(display_task), NULL);
 
-    osThreadDef(adc_task, adc_task, osPriorityNormal, 0, configMINIMAL_STACK_SIZE*2);
+    /*osThreadDef(adc_task, adc_task, osPriorityNormal, 0, configMINIMAL_STACK_SIZE*2);
     adcTaskHandle = osThreadCreate(osThread(adc_task), NULL);
 
     osThreadDef(am2302_task, am2302_task, osPriorityNormal, 0, configMINIMAL_STACK_SIZE);
@@ -216,7 +217,7 @@ int main(void){
     navigationTaskHandle = osThreadCreate(osThread(navigation_task), NULL);
 
     osThreadDef(uart_task, uart_task, osPriorityHigh, 0, configMINIMAL_STACK_SIZE*4);
-    uartTaskHandle = osThreadCreate(osThread(uart_task), NULL);
+    uartTaskHandle = osThreadCreate(osThread(uart_task), NULL);*/
 
     /* Start scheduler */
     osKernelStart();
@@ -407,6 +408,7 @@ void display_task(void const * argument){
     menu_page_t last_page = selectedMenuItem->Page;
     refresh_watchdog();
     max7219_init();
+    st7735_init();
     sprintf(string, "       dcts%s", dcts.dcts_ver);
     while(*p_string != '\0'){
         max7219_print_string(p_string);

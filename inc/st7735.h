@@ -23,7 +23,7 @@
 //#define ST7735_ROTATION (ST7735_MADCTL_MX | ST7735_MADCTL_MY) // default orientation
 //#define ST7735_ROTATION (ST7735_MADCTL_MY | ST7735_MADCTL_MV) // rotate right
 //#define ST7735_ROTATION (ST7735_MADCTL_MX | ST7735_MADCTL_MV) // rotate left
-#define ST7735_ROTATION ST7735_MADCTL_MV   // upside down
+#define ST7735_ROTATION (ST7735_MADCTL_MV | ST7735_MADCTL_MH)  // upside down
 
 /*========== TYPEDEFS ==========*/
 
@@ -53,8 +53,10 @@ typedef enum{
     ST7735_RAMRD   = 0x2E,
 
     ST7735_PTLAR   = 0x30,
-    ST7735_COLMOD  = 0x3A,
     ST7735_MADCTL  = 0x36,
+    ST7735_IDMOFF  = 0x38,
+    ST7735_IDMON   = 0x39,
+    ST7735_COLMOD  = 0x3A,
 
     ST7735_FRMCTR1 = 0xB1,
     ST7735_FRMCTR2 = 0xB2,

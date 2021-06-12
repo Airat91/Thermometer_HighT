@@ -405,6 +405,7 @@ void display_task(void const * argument){
     char string[50] = {0};
     char * p_string = string;
     u8 tick = 0;
+    uint16_t color = 1;
     menu_page_t last_page = selectedMenuItem->Page;
     refresh_watchdog();
     max7219_init();
@@ -427,6 +428,13 @@ void display_task(void const * argument){
 
     uint32_t last_wake_time = osKernelSysTick();
     while(1){
+        sprintf(string, "%02d-%02d-%02d", dcts.dcts_rtc.hour, dcts.dcts_rtc.minute, dcts.dcts_rtc.second);
+        ST7735_fill_rect(0,0,160,128,color);
+        color++;
+        ST7735_fill_rect(50,55,(uint8_t)strlen(string)*Font_7x10.FontWidth+2,Font_7x10.FontHeight+2,ST7735_BLACK);
+        st7735_xy(51,55);
+        st7735_print(string, &Font_7x10, ST7735_WHITE);
+
         refresh_watchdog();
         if(last_page != selectedMenuItem->Page){
             tick = 0;

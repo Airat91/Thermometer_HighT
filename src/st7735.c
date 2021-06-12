@@ -37,11 +37,6 @@ int st7735_init (void){
         result = -1;
     }
 
-    HAL_GPIO_WritePin(ST7735_RESET_PORT,ST7735_RESET_PIN, GPIO_PIN_RESET);
-    osDelay(5);
-    HAL_GPIO_WritePin(ST7735_RESET_PORT,ST7735_RESET_PIN, GPIO_PIN_SET);
-
-
     st7735_cmd(ST7735_SWRESET);
     osDelay(150);
     st7735_cmd(ST7735_SLPOUT );
@@ -97,6 +92,8 @@ int st7735_init (void){
 
     st7735_cmd(ST7735_COLMOD );
     st7735_data(0x05);
+
+    st7735_cmd(ST7735_IDMON );
 
     //===========================
 
@@ -160,13 +157,16 @@ int st7735_init (void){
     strcpy(string,"Hello world!");
 
     ST7735_fill_rect(0,0,160,128,ST7735_BLACK);
-    ST7735_fill_rect(10,10,140,108,ST7735_BLUE);
+    /*ST7735_fill_rect(10,10,140,108,ST7735_BLUE);
     ST7735_fill_rect(20,20,120,88,ST7735_CYAN);
     ST7735_fill_rect(30,30,100,68,ST7735_YELLOW);
-    ST7735_fill_rect(35,55,(uint8_t)strlen(string)*Font_7x10.FontWidth+2,Font_7x10.FontHeight+2,ST7735_WHITE);
+    ST7735_fill_rect(35,55,(uint8_t)strlen(string)*Font_7x10.FontWidth+2,Font_7x10.FontHeight+2,ST7735_WHITE);*/
 
     st7735_xy(36,55);
-    st7735_print(string, &Font_7x10, ST7735_BLACK);
+    st7735_print(string, &Font_7x10, ST7735_RED);
+
+    osDelay(1000);
+    ST7735_fill_rect(0,0,160,128,ST7735_BLACK);
 
     return result;
 }
@@ -233,7 +233,7 @@ void st7735_gpio_init (void){
     GPIO_InitStruct.Pin = ST7735_CS_PIN;
     HAL_GPIO_Init(ST7735_CS_PORT, &GPIO_InitStruct);
 
-    HAL_GPIO_WritePin(ST7735_RESET_PORT, ST7735_RESET_PIN, GPIO_PIN_RESET);
+    HAL_GPIO_WritePin(ST7735_RESET_PORT, ST7735_RESET_PIN, GPIO_PIN_SET);
     GPIO_InitStruct.Pin = ST7735_RESET_PIN;
     HAL_GPIO_Init(ST7735_RESET_PORT, &GPIO_InitStruct);
 
@@ -268,7 +268,7 @@ int st7735_cmd(uint8_t cmd){
     int timeout = 0;
     HAL_GPIO_WritePin(ST7735_A0_PORT, ST7735_A0_PIN, GPIO_PIN_RESET);
     HAL_GPIO_WritePin(ST7735_CS_PORT, ST7735_CS_PIN, GPIO_PIN_RESET);
-    if(HAL_SPI_Transmit(&st7735_spi,&cmd,1,100) == HAL_OK){
+    if(HAL_SPI_Transmit(&st7735_spi,&cmd,1,HAL_MAX_DELAY) == HAL_OK){
         while((((uint16_t)st7735_spi.Instance->SR & SPI_SR_BSY)&&(timeout < 5000))){
             timeout++;
             osDelay(1);
@@ -289,7 +289,7 @@ int st7735_array(uint8_t* array, uint8_t len){
     HAL_GPIO_WritePin(ST7735_A0_PORT, ST7735_A0_PIN, GPIO_PIN_SET);
     HAL_GPIO_WritePin(ST7735_CS_PORT, ST7735_CS_PIN, GPIO_PIN_RESET);
     while(len > 0){
-        if(HAL_SPI_Transmit(&st7735_spi,array,1,100) == HAL_OK){
+        if(HAL_SPI_Transmit(&st7735_spi,array,1,HAL_MAX_DELAY) == HAL_OK){
             while((((uint16_t)st7735_spi.Instance->SR & SPI_SR_BSY)&&(timeout < 5000))){
                 timeout++;
                 osDelay(1);
@@ -312,7 +312,7 @@ int st7735_data(uint8_t data){
     int timeout = 0;
     HAL_GPIO_WritePin(ST7735_A0_PORT, ST7735_A0_PIN, GPIO_PIN_SET);
     HAL_GPIO_WritePin(ST7735_CS_PORT, ST7735_CS_PIN, GPIO_PIN_RESET);
-    if(HAL_SPI_Transmit(&st7735_spi,&data,1,100) == HAL_OK){
+    if(HAL_SPI_Transmit(&st7735_spi,&data,1,HAL_MAX_DELAY) == HAL_OK){
         while((((uint16_t)st7735_spi.Instance->SR & SPI_SR_BSY)&&(timeout < 5000))){
             timeout++;
             osDelay(1);
@@ -343,12 +343,12 @@ int st7735_draw_pixel(uint8_t x, uint8_t y, uint16_t color){
 
 int ST7735_fill_rect(uint8_t x, uint8_t y, uint8_t w, uint8_t h, uint16_t color){
     int result = 0;
-    if(st7735.x + w - 1 > ST7735_MAX_X){
-        w = ST7735_MAX_X - st7735.x;
+    if(x + w - 1 > ST7735_MAX_X){
+        w = ST7735_MAX_X - x;
         result -=10;
     }
-    if(st7735.y + h - 1 > ST7735_MAX_Y){
-        h = ST7735_MAX_Y - st7735.y;
+    if(y + h - 1 > ST7735_MAX_Y){
+        h = ST7735_MAX_Y - y;
         result -=100;
     }
     st7735_SetAddressWindow(x, y, w - 1,h - 1);

@@ -30,6 +30,9 @@
 #define MAX_MOSI_PORT   GPIOB
 #define MAX_MOSI_PIN    GPIO_PIN_5
 
+#define DS18B20_PORT    GPIOB
+#define DS18B20_PIN     GPIO_PIN_8
+
 #define BUTTON_2_PORT   GPIOB
 #define BUTTON_2_PIN    GPIO_PIN_11
 #define DATA_PORT       GPIOB

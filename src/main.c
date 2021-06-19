@@ -66,6 +66,7 @@
 #include "uart.h"
 #include "modbus.h"
 #include <string.h>
+#include "ds18b20.h"
 
 /**
   * @defgroup MAIN
@@ -217,6 +218,9 @@ int main(void){
 
     osThreadDef(uart_task, uart_task, osPriorityHigh, 0, configMINIMAL_STACK_SIZE*4);
     uartTaskHandle = osThreadCreate(osThread(uart_task), NULL);
+
+    osThreadDef(ds18b20_task, ds18b20_task, osPriorityNormal, 0, configMINIMAL_STACK_SIZE);
+    am2302TaskHandle = osThreadCreate(osThread(ds18b20_task), NULL);
 
     /* Start scheduler */
     osKernelStart();

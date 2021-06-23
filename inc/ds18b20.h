@@ -2,7 +2,7 @@
 // Ver_1.0
 
 /*========== LIBRARY DESCRIPTION ==========
-- Library use STM32F3xx_HAL_Driver 
+- Library use STM32F3xx_HAL_Driver
 */
 
 #ifndef ds18b20_H_
@@ -22,7 +22,29 @@
 #define RECALL          0xB8
 #define READ_PWR        0xB4
 
+#define TH_ALRM         0x00
+#define TL_ALRM         0x00
+#define RESOLUTION      12 // 9, 10, 11 or 12
+
+#if(RESOLUTION == 12)
+#define CONF            0x7F
 #define DS18B20_RESOLUTION 0.0625f
+#define DS18B20_CONV_MS 750
+#elif(RESOLUTION == 11)
+#define CONF            0x5F
+#define DS18B20_RESOLUTION 0.125f
+#define DS18B20_CONV_MS 375
+#elif(RESOLUTION == 10)
+#define CONF            0x3F
+#define DS18B20_RESOLUTION 0.25f
+#define DS18B20_CONV_MS 188
+#elif(RESOLUTION == 9)
+#define CONF            0x1F
+#define DS18B20_RESOLUTION 0.5f
+#define DS18B20_CONV_MS 94
+#else
+#error(Please select DS18B20 ADC resolution)
+#endif // RESOLUTION
 
 
 /*========== TYPEDEFS ==========*/
@@ -32,10 +54,8 @@
   * @ingroup ds18b20
   */
 typedef struct {
-  int16_t hum;
-  int16_t tmpr;
-  uint8_t paritet;
-  uint8_t error;
+  float tmpr;
+  uint8_t valid;
 } ds18b20_data_t;
 
 //========== VARIABLES ==========
@@ -44,8 +64,8 @@ typedef struct {
 
 int ds18b20_init (void);
 void ds18b20_deinit(void);
-ds18b20_data_t ds18b20_get (uint8_t channel);
 void ds18b20_task (void const * argument);
-uint8_t crc8(uint8_t *pcBlock, int len);
+ds18b20_data_t ds18b20_get(void);
+void ds18b20_start_conv(void);
 
 #endif /* ds18b20_H_ */

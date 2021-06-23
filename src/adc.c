@@ -169,16 +169,16 @@ void adc_task(void const * argument){
 
         dcts_meas[TMPR_ADC].value = (float)tmpr_sum/ADC_BUF_SIZE;
         dcts_meas[TMPR_V].value = dcts_meas[TMPR_ADC].value*VREF_INT/dcts_meas[VREFINT_ADC].value;
-        dcts_meas[TMPR].value = tmpr_calc(dcts_meas[TMPR_V].value);
+        //dcts_meas[TMPR].value = tmpr_calc(dcts_meas[TMPR_V].value);
 
         dcts_meas[VREFINT_ADC].valid = TRUE;
         dcts_meas[TMPR_ADC].valid = TRUE;
         dcts_meas[TMPR_V].valid = TRUE;
-        if((dcts_meas[TMPR_V].value > 0.01f)&&(dcts_meas[TMPR_V].value < 1.7f)){
+        /*if((dcts_meas[TMPR_V].value > 0.01f)&&(dcts_meas[TMPR_V].value < 1.7f)){
             dcts_meas[TMPR].valid = TRUE;
         }else{
             dcts_meas[TMPR].valid = FALSE;
-        }
+        }*/
 
         taskEXIT_CRITICAL();
 

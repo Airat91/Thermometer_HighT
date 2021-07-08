@@ -299,7 +299,7 @@ void ds18b20_task (void const * argument){
         }else{
             recieved++;
             lost_con_cnt = 0;
-            dcts_meas[TMPR].value = data.tmpr;
+            dcts_meas[TMPR].value = data.tmpr * (float)config.params.tmpr_coef_a + (float)config.params.tmpr_coef_b;
             dcts_meas[TMPR].valid = data.valid;
         }
     }

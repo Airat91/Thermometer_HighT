@@ -154,7 +154,7 @@ static const char data_pin_description[3][20] = {
 
 void dcts_init (void) {
     dcts.dcts_id = DCTS_ID_MEASURE;
-    strcpy (dcts.dcts_ver, "1.1.0");
+    strcpy (dcts.dcts_ver, "1.2.0");
     strcpy (dcts.dcts_name, "Parilka");
     strcpy (dcts.dcts_name_cyr, "Парилка");
     dcts.dcts_address = 0x0C;

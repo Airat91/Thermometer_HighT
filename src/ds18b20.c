@@ -91,12 +91,12 @@ static u8 read_bit(void){
     us_tim_delay(1);
     HAL_GPIO_WritePin(DS18B20_PORT, DS18B20_PIN, GPIO_PIN_SET);
     ds18b20_pin_input();
-    us_tim_delay(14);
+    us_tim_delay(10);
     if(HAL_GPIO_ReadPin(DS18B20_PORT, DS18B20_PIN)){
         result = 1;
     }
     taskEXIT_CRITICAL();
-    us_tim_delay(46);
+    us_tim_delay(50);
     return result;
 }
 
@@ -281,13 +281,26 @@ void ds18b20_task (void const * argument){
     (void)argument;
     ds18b20_init();
     ds18b20_data_t data = {0};
+    uint8_t lost_con_cnt = 0;
+    uint32_t recieved = 0;
+    uint32_t lost = 0;
 
     uint32_t last_wake_time = osKernelSysTick();
     while(1){
         ds18b20_start_conv();
         osDelayUntil(&last_wake_time, DS18B20_CONV_MS);
         data = ds18b20_get();
-        dcts_meas[TMPR].value = data.tmpr;
-        dcts_meas[TMPR].valid = data.valid;
+        if(data.valid == 0){
+            lost++;
+            lost_con_cnt++;
+            if(lost_con_cnt > 2){
+                dcts_meas[TMPR].valid = FALSE;
+            }
+        }else{
+            recieved++;
+            lost_con_cnt = 0;
+            dcts_meas[TMPR].value = data.tmpr;
+            dcts_meas[TMPR].valid = data.valid;
+        }
     }
 }

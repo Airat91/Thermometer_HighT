@@ -65,7 +65,7 @@
 #include "flash.h"
 #include "uart.h"
 #include "modbus.h"
-#include "st7735.h"
+//#include "st7735.h"
 #include <string.h>
 #include "ds18b20.h"
 
@@ -205,7 +205,7 @@ int main(void){
     osThreadDef(display_task, display_task, osPriorityNormal, 0, configMINIMAL_STACK_SIZE*2);
     displayTaskHandle = osThreadCreate(osThread(display_task), NULL);
 
-    /*osThreadDef(adc_task, adc_task, osPriorityNormal, 0, configMINIMAL_STACK_SIZE*2);
+    osThreadDef(adc_task, adc_task, osPriorityNormal, 0, configMINIMAL_STACK_SIZE*2);
     adcTaskHandle = osThreadCreate(osThread(adc_task), NULL);
 
     osThreadDef(am2302_task, am2302_task, osPriorityNormal, 0, configMINIMAL_STACK_SIZE);
@@ -218,7 +218,7 @@ int main(void){
     navigationTaskHandle = osThreadCreate(osThread(navigation_task), NULL);
 
     osThreadDef(uart_task, uart_task, osPriorityHigh, 0, configMINIMAL_STACK_SIZE*4);
-    uartTaskHandle = osThreadCreate(osThread(uart_task), NULL);*/
+    uartTaskHandle = osThreadCreate(osThread(uart_task), NULL);
 
     osThreadDef(ds18b20_task, ds18b20_task, osPriorityNormal, 0, configMINIMAL_STACK_SIZE);
     am2302TaskHandle = osThreadCreate(osThread(ds18b20_task), NULL);
@@ -409,11 +409,11 @@ void display_task(void const * argument){
     char string[50] = {0};
     char * p_string = string;
     u8 tick = 0;
-    uint16_t color = 1;
+    //uint16_t color = 1;
     menu_page_t last_page = selectedMenuItem->Page;
     refresh_watchdog();
     max7219_init();
-    st7735_init();
+    //st7735_init();
     sprintf(string, "       dcts%s", dcts.dcts_ver);
     while(*p_string != '\0'){
         max7219_print_string(p_string);
@@ -433,11 +433,11 @@ void display_task(void const * argument){
     uint32_t last_wake_time = osKernelSysTick();
     while(1){
         sprintf(string, "%02d-%02d-%02d", dcts.dcts_rtc.hour, dcts.dcts_rtc.minute, dcts.dcts_rtc.second);
-        ST7735_fill_rect(0,0,160,128,color);
+        /*ST7735_fill_rect(0,0,160,128,color);
         color++;
         ST7735_fill_rect(50,55,(uint8_t)strlen(string)*Font_7x10.FontWidth+2,Font_7x10.FontHeight+2,ST7735_BLACK);
         st7735_xy(51,55);
-        st7735_print(string, &Font_7x10, ST7735_WHITE);
+        st7735_print(string, &Font_7x10, ST7735_WHITE);*/
 
         refresh_watchdog();
         if(last_page != selectedMenuItem->Page){

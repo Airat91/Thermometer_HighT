@@ -58,7 +58,7 @@ int adc_init (void){
         result = -1;
     }
 
-    sConfigInjected.InjectedNbrOfConversion = 3;
+    sConfigInjected.InjectedNbrOfConversion = 2;
     sConfigInjected.InjectedSamplingTime = ADC_SAMPLETIME_239CYCLES_5;
     sConfigInjected.ExternalTrigInjecConv = ADC_INJECTED_SOFTWARE_START;
     sConfigInjected.AutoInjectedConv = ENABLE;
@@ -73,19 +73,19 @@ int adc_init (void){
         result = -2;
     }
     //Configure TMPR Channel
-    sConfigInjected.InjectedChannel = ADC_CHANNEL_1;
+    sConfigInjected.InjectedChannel = ADC_CHANNEL_VREFINT;
     sConfigInjected.InjectedRank = ADC_INJECTED_RANK_2;
     if (HAL_ADCEx_InjectedConfigChannel(&hadc1, &sConfigInjected) != HAL_OK)
     {
         result = -3;
     }
     //Configure VREF Channel
-    sConfigInjected.InjectedChannel = ADC_CHANNEL_VREFINT;
+    /*sConfigInjected.InjectedChannel = ADC_CHANNEL_VREFINT;
     sConfigInjected.InjectedRank = ADC_INJECTED_RANK_3;
     if (HAL_ADCEx_InjectedConfigChannel(&hadc1, &sConfigInjected) != HAL_OK)
     {
         result = -4;
-    }
+    }*/
     //Self-calibration
     if(HAL_ADCEx_Calibration_Start(&hadc1) != HAL_OK){
         result = -5;
@@ -121,8 +121,8 @@ void adc_gpio_init (void){
     GPIO_InitStruct.Mode = GPIO_MODE_ANALOG;
     GPIO_InitStruct.Pin = PWR_PIN;
     HAL_GPIO_Init(PWR_PORT, &GPIO_InitStruct);
-    GPIO_InitStruct.Pin = TMPR_PIN;
-    HAL_GPIO_Init(TMPR_PORT, &GPIO_InitStruct);
+    /*GPIO_InitStruct.Pin = TMPR_PIN;
+    HAL_GPIO_Init(TMPR_PORT, &GPIO_InitStruct);*/
 }
 /**
  * @brief Deinit ADC gpio
@@ -130,7 +130,7 @@ void adc_gpio_init (void){
  */
 void adc_gpio_deinit (void){
     HAL_GPIO_DeInit(PWR_PORT,PWR_PIN);
-    HAL_GPIO_DeInit(TMPR_PORT,TMPR_PIN);
+    /*HAL_GPIO_DeInit(TMPR_PORT,TMPR_PIN);*/
 }
 /**
  * @brief Measure ADC channels and write values to DCTS
@@ -140,24 +140,24 @@ void adc_gpio_deinit (void){
 void adc_task(void const * argument){
     (void)argument;
     uint16_t pwr[ADC_BUF_SIZE];
-    uint16_t tmpr[ADC_BUF_SIZE];
+    //uint16_t tmpr[ADC_BUF_SIZE];
     uint16_t vref[ADC_BUF_SIZE];
     uint8_t tick = 0;
     adc_init();
     uint32_t last_wake_time = osKernelSysTick();
     while(1){
         uint32_t pwr_sum = 0;
-        uint32_t tmpr_sum = 0;
+        //uint32_t tmpr_sum = 0;
         uint32_t vref_sum = 0;
 
 
         pwr[tick] = (uint16_t)hadc1.Instance->JDR1;
-        tmpr[tick] = (uint16_t)hadc1.Instance->JDR2;
-        vref[tick] = (uint16_t)hadc1.Instance->JDR3;
+        //tmpr[tick] = (uint16_t)hadc1.Instance->JDR2;
+        vref[tick] = (uint16_t)hadc1.Instance->JDR2;
 
         for(uint8_t i = 0; i < ADC_BUF_SIZE; i++){
             pwr_sum += pwr[i];
-            tmpr_sum += tmpr[i];
+            //tmpr_sum += tmpr[i];
             vref_sum += vref[i];
         }
 
@@ -167,13 +167,13 @@ void adc_task(void const * argument){
 
         dcts.dcts_pwr = (float)pwr_sum/ADC_BUF_SIZE*VREF_INT/dcts_meas[VREFINT_ADC].value*PWR_K;
 
-        dcts_meas[TMPR_ADC].value = (float)tmpr_sum/ADC_BUF_SIZE;
-        dcts_meas[TMPR_V].value = dcts_meas[TMPR_ADC].value*VREF_INT/dcts_meas[VREFINT_ADC].value;
+        /*dcts_meas[TMPR_ADC].value = (float)tmpr_sum/ADC_BUF_SIZE;
+        dcts_meas[TMPR_V].value = dcts_meas[TMPR_ADC].value*VREF_INT/dcts_meas[VREFINT_ADC].value;*/
         //dcts_meas[TMPR].value = tmpr_calc(dcts_meas[TMPR_V].value);
 
         dcts_meas[VREFINT_ADC].valid = TRUE;
-        dcts_meas[TMPR_ADC].valid = TRUE;
-        dcts_meas[TMPR_V].valid = TRUE;
+        /*dcts_meas[TMPR_ADC].valid = TRUE;
+        dcts_meas[TMPR_V].valid = TRUE;*/
         /*if((dcts_meas[TMPR_V].value > 0.01f)&&(dcts_meas[TMPR_V].value < 1.7f)){
             dcts_meas[TMPR].valid = TRUE;
         }else{

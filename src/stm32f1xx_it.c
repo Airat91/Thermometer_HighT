@@ -307,10 +307,10 @@ void EXTI15_10_IRQHandler(void){
         irq_start = us_tim_get_value();
     }else{
         irq_time = us_tim_get_value() - irq_start;
-        if((irq_time >= 800) && (irq_time < 1200)){
+        if((irq_time >= 800) && (irq_time < 2000)){
             HAL_NVIC_DisableIRQ(EXTI15_10_IRQn);
             irq_state = IRQ_SEND_TMPR;
-        }else if((irq_time >= 300) && (irq_time < 700)){
+        }else if((irq_time >= 300) && (irq_time < 800)){
             HAL_NVIC_DisableIRQ(EXTI15_10_IRQn);
             irq_state = IRQ_READ_RTC;
         }
